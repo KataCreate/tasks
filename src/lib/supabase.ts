@@ -21,9 +21,31 @@ if (supabaseUrl && supabaseKey) {
   console.log("✅ Supabase環境変数が正しく設定されています");
 }
 
+// パフォーマンス最適化されたSupabaseクライアント
 export const supabase = createClient<Database>(
   supabaseUrl || "https://placeholder.supabase.co",
-  supabaseKey || "placeholder-key"
+  supabaseKey || "placeholder-key",
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+    global: {
+      headers: {
+        "x-client-info": "task-sys@1.0.0",
+      },
+    },
+    db: {
+      schema: "public",
+    },
+    realtime: {
+      // リアルタイム機能が不要な場合は無効化してパフォーマンス向上
+      params: {
+        eventsPerSecond: 2,
+      },
+    },
+  }
 );
 
 // 認証関連のヘルパー関数
@@ -127,3 +149,34 @@ export const auth = {
     }
   },
 };
+
+// キャッシュ機能付きデータ取得ヘルパー
+export class SupabaseCache {
+  private static cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+  static async get<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    ttl: number = 60000 // デフォルト1分
+  ): Promise<T> {
+    const cached = this.cache.get(key);
+    const now = Date.now();
+
+    if (cached && (now - cached.timestamp) < cached.ttl) {
+      return cached.data;
+    }
+
+    const data = await fetcher();
+    this.cache.set(key, { data, timestamp: now, ttl });
+
+    return data;
+  }
+
+  static clear(key?: string) {
+    if (key) {
+      this.cache.delete(key);
+    } else {
+      this.cache.clear();
+    }
+  }
+}

@@ -2,10 +2,31 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { AuthForm } from "@/components/auth/auth-form";
-import { KanbanBoard } from "@/components/kanban/kanban-board";
-import { SetupButton } from "@/components/setup-button";
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import Link from "next/link";
+
+// 重いコンポーネントを遅延読み込み
+const KanbanBoard = lazy(() =>
+  import("@/components/kanban/kanban-board").then((module) => ({
+    default: module.KanbanBoard,
+  }))
+);
+
+const SetupButton = lazy(() =>
+  import("@/components/setup-button").then((module) => ({
+    default: module.SetupButton,
+  }))
+);
+
+// ローディングコンポーネント
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <span className="ml-2 text-gray-600">読み込み中...</span>
+    </div>
+  );
+}
 
 export default function Home() {
   const { user, loading, signOut, profile } = useAuth();
@@ -103,10 +124,14 @@ export default function Home() {
         <div className="px-4 py-6 sm:px-0">
           {showSetup && (
             <div className="mb-6">
-              <SetupButton />
+              <Suspense fallback={<LoadingSpinner />}>
+                <SetupButton />
+              </Suspense>
             </div>
           )}
-          <KanbanBoard />
+          <Suspense fallback={<LoadingSpinner />}>
+            <KanbanBoard />
+          </Suspense>
         </div>
       </main>
     </div>
