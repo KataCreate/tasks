@@ -43,16 +43,32 @@ export function AuthForm() {
   };
 
   const getErrorMessage = (error: any): string => {
-    if (error.message.includes("Invalid login credentials")) {
+    console.log("🔍 エラー詳細:", error);
+
+    if (!error) return "不明なエラーが発生しました";
+
+    const errorMessage = error.message || error.toString();
+
+    if (errorMessage.includes("Invalid login credentials")) {
       return "メールアドレスまたはパスワードが間違っています";
     }
-    if (error.message.includes("Email already registered")) {
+    if (errorMessage.includes("Email already registered")) {
       return "このメールアドレスは既に登録されています";
     }
-    if (error.message.includes("Password should be at least")) {
+    if (errorMessage.includes("Password should be at least")) {
       return "パスワードは6文字以上で入力してください";
     }
-    return error.message || "エラーが発生しました";
+    if (errorMessage.includes("Email not confirmed")) {
+      return "メールアドレスの確認が完了していません。登録時に送信された確認メールをご確認ください。";
+    }
+    if (errorMessage.includes("signups not allowed")) {
+      return "現在新規登録は無効になっています";
+    }
+    if (errorMessage.includes("Unable to validate email address")) {
+      return "メールアドレスの形式が正しくありません";
+    }
+
+    return errorMessage || "エラーが発生しました";
   };
 
   const toggleMode = () => {

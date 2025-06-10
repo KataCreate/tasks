@@ -62,12 +62,26 @@ export const auth = {
 
   signIn: async (email: string, password: string) => {
     try {
-      return await supabase.auth.signInWithPassword({
+      console.log("🔐 Supabase ログイン試行:", {
+        email,
+        supabaseUrl: supabaseUrl?.substring(0, 20) + "...",
+        hasKey: !!supabaseKey,
+      });
+
+      const result = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      console.log("🔐 Supabase ログイン結果:", {
+        hasUser: !!result.data?.user,
+        hasSession: !!result.data?.session,
+        error: result.error?.message,
+      });
+
+      return result;
     } catch (error) {
-      console.error("サインインエラー:", error);
+      console.error("❌ Supabase サインインエラー:", error);
       return { data: { user: null, session: null }, error };
     }
   },

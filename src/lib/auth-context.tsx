@@ -93,11 +93,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await auth.signIn(email, password);
-    if (error) {
+    console.log("🔐 ログイン試行開始:", { email });
+
+    try {
+      const { error } = await auth.signIn(email, password);
+
+      if (error) {
+        console.error("❌ ログインエラー詳細:", {
+          message: (error as any)?.message,
+          status: (error as any)?.status,
+          statusText: (error as any)?.statusText,
+          name: (error as any)?.name,
+          stack: (error as any)?.stack,
+          fullError: error,
+        });
+        setLoading(false);
+        return { error };
+      }
+
+      console.log("✅ ログイン成功");
+      return { error: null };
+    } catch (err) {
+      console.error("❌ ログイン例外エラー:", err);
       setLoading(false);
+      return { error: err };
     }
-    return { error };
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
