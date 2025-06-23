@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -32,6 +32,12 @@ export function KanbanBoard() {
   const [managingTasksProject, setManagingTasksProject] = useState<ProjectWithStatus | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
 
+  // タブの表示状態を追跡
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const loadingRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
+  const loadDataRef = useRef<(() => Promise<void>) | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -40,20 +46,17 @@ export function KanbanBoard() {
     })
   );
 
-  useEffect(() => {
-    if (user?.id) {
-      loadData();
-    }
-  }, [user]);
+  const loadData = useCallback(async () => {
+    if (!user?.id || loadingRef.current) return;
 
-  const loadData = async () => {
     try {
+      loadingRef.current = true;
       setLoading(true);
-      console.log("📊 データ読み込み開始 - ユーザーID:", user!.id);
+      console.log("📊 データ読み込み開始 - ユーザーID:", user.id);
 
       const [projectsData, statusesData] = await Promise.all([
-        getProjects(user!.id),
-        getProjectStatuses(user!.id),
+        getProjects(user.id),
+        getProjectStatuses(user.id),
       ]);
 
       console.log("📈 取得した案件数:", projectsData.length);
@@ -66,8 +69,37 @@ export function KanbanBoard() {
       console.error("❌ データ読み込みエラー:", error);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, [user?.id]);
+
+  // loadDataの最新版をrefに保存
+  loadDataRef.current = loadData;
+
+  // Page Visibility APIでタブの表示状態を監視
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const visible = !document.hidden;
+      console.log("📱 タブ表示状態変更:", visible ? "アクティブ" : "非アクティブ");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  // ユーザー変更時のみデータを読み込み
+  useEffect(() => {
+    if (user?.id && user.id !== userIdRef.current) {
+      console.log("👤 ユーザー変更検出:", user.id);
+      userIdRef.current = user.id;
+      loadDataRef.current?.();
+    } else if (!user?.id) {
+      userIdRef.current = null;
+      setProjects([]);
+      setStatuses([]);
+      setLoading(false);
+    }
+  }, [user?.id]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const project = projects.find((p) => p.id === event.active.id);

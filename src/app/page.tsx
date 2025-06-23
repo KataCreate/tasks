@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { AuthForm } from "@/components/auth/auth-form";
-import { useState, Suspense, lazy } from "react";
+import { useState, Suspense, lazy, useEffect } from "react";
 import Link from "next/link";
 
 // 重いコンポーネントを遅延読み込み

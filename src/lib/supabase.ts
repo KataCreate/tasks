@@ -30,6 +30,8 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // タブ非アクティブ時のトークン更新頻度を調整
+      flowType: "pkce",
     },
     global: {
       headers: {
@@ -40,10 +42,13 @@ export const supabase = createClient<Database>(
       schema: "public",
     },
     realtime: {
-      // リアルタイム機能が不要な場合は無効化してパフォーマンス向上
+      // リアルタイム機能のパフォーマンス調整
       params: {
         eventsPerSecond: 2,
       },
+      // タブ非アクティブ時の接続維持設定
+      heartbeatIntervalMs: 30000,
+      reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 10000),
     },
   }
 );

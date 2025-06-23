@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase, auth } from "./supabase";
 import { Profile } from "./database.types";
@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const profileLoadingRef = useRef(false);
 
   useEffect(() => {
     // 初期セッション取得
@@ -37,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔐 認証状態変更:", event);
+
       setUser(session?.user ?? null);
       if (session?.user) {
         await loadProfile(session.user.id);
@@ -50,7 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadProfile = async (userId: string) => {
+    if (profileLoadingRef.current) return;
+
     try {
+      profileLoadingRef.current = true;
       // まず通常のプロファイル取得を試行
       const { data, error } = await auth.getProfile(userId);
 
@@ -88,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("プロファイル取得エラー:", error);
     } finally {
       setLoading(false);
+      profileLoadingRef.current = false;
     }
   };
 
