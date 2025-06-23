@@ -1,17 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ProjectWithStatus, TaskWithChildren } from "@/lib/database.types";
-import { getProjectTasks, updateTaskOrder } from "@/lib/api/tasks";
+import { getProjectTasks } from "@/lib/api/tasks";
 import { TaskItem } from "./task-item";
 import { TaskForm } from "./task-form";
 
@@ -27,14 +18,6 @@ export function TaskManager({ project, onClose }: TaskManagerProps) {
   const [editingTask, setEditingTask] = useState<TaskWithChildren | null>(null);
   const [parentTask, setParentTask] = useState<TaskWithChildren | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
   useEffect(() => {
     loadTasks();
   }, [project.id]);
@@ -49,18 +32,6 @@ export function TaskManager({ project, onClose }: TaskManagerProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // TODO: ドラッグ&ドロップの実装（複雑なため後回し）
-    console.log("Task moved:", activeId, "to", overId);
   };
 
   const handleTaskCreated = () => {
@@ -156,72 +127,57 @@ export function TaskManager({ project, onClose }: TaskManagerProps) {
               </button>
             </div>
 
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <div className="space-y-2">
-                {tasks.length > 0 ? (
-                  <SortableContext
-                    items={tasks.map((t) => t.id)}
-                    strategy={verticalListSortingStrategy}
+            <div className="space-y-2">
+              {tasks.length > 0 ? (
+                tasks.map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    onToggleComplete={loadTasks}
+                    onAddSubTask={handleAddSubTask}
+                    onEdit={handleEditTask}
+                    onDelete={loadTasks}
+                    level={0}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    {tasks.map((task) => (
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        onToggleComplete={loadTasks}
-                        onAddSubTask={handleAddSubTask}
-                        onEdit={handleEditTask}
-                        onDelete={loadTasks}
-                        level={0}
-                      />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <div className="text-center py-12">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                      />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">タスクがありません</h3>
-                    <p className="mt-1 text-sm text-gray-500">最初のタスクを作成してみましょう</p>
-                  </div>
-                )}
-              </div>
-            </DndContext>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">タスクがありません</h3>
+                  <p className="mt-1 text-sm text-gray-500">最初のタスクを作成してみましょう</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* タスクフォーム */}
+        {(showCreateForm || editingTask) && (
+          <TaskForm
+            projectId={project.id}
+            task={editingTask}
+            parentTask={parentTask}
+            onClose={() => {
+              setShowCreateForm(false);
+              setEditingTask(null);
+              setParentTask(null);
+            }}
+            onSuccess={editingTask ? handleTaskUpdated : handleTaskCreated}
+          />
+        )}
       </div>
-
-      {/* タスク作成フォーム */}
-      {showCreateForm && (
-        <TaskForm
-          projectId={project.id}
-          parentTask={parentTask}
-          onClose={() => {
-            setShowCreateForm(false);
-            setParentTask(null);
-          }}
-          onSuccess={handleTaskCreated}
-        />
-      )}
-
-      {/* タスク編集フォーム */}
-      {editingTask && (
-        <TaskForm
-          projectId={project.id}
-          task={editingTask}
-          onClose={() => setEditingTask(null)}
-          onSuccess={handleTaskUpdated}
-        />
-      )}
     </div>
   );
 }
