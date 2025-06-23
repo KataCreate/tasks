@@ -2,13 +2,13 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { AuthForm } from "@/components/auth/auth-form";
-import { useState, Suspense, lazy, useEffect } from "react";
+import { useState, Suspense, lazy } from "react";
 import Link from "next/link";
 
 // 重いコンポーネントを遅延読み込み
-const KanbanBoard = lazy(() =>
-  import("@/components/kanban/kanban-board").then((module) => ({
-    default: module.KanbanBoard,
+const ProjectList = lazy(() =>
+  import("@/components/projects/project-list").then((module) => ({
+    default: module.ProjectList,
   }))
 );
 
@@ -100,7 +100,7 @@ export default function Home() {
                       d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                     />
                   </svg>
-                  カンバン
+                  案件一覧
                 </Link>
               </nav>
               <button
@@ -130,7 +130,7 @@ export default function Home() {
             </div>
           )}
           <Suspense fallback={<LoadingSpinner />}>
-            <KanbanBoard />
+            <ProjectList />
           </Suspense>
         </div>
       </main>
