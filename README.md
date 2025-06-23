@@ -1,4 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 案件管理システム
+
+Next.js + Supabase + TypeScript で構築された案件管理システムです。
+
+## 機能
+
+- ユーザー認証（Supabase Auth）
+- 案件管理（カンバンボード形式）
+- タスク管理
+- 制作状況管理
+- ダッシュボード（統計・分析）
+- パフォーマンス最適化
+
+## 技術スタック
+
+- **フロントエンド**: Next.js 14, React, TypeScript
+- **UI**: Tailwind CSS
+- **バックエンド**: Supabase
+- **データベース**: PostgreSQL
+- **認証**: Supabase Auth
+- **ドラッグ&ドロップ**: @dnd-kit
+- **デプロイ**: Vercel
+
+## 開発環境
+
+```bash
+npm install
+npm run dev
+```
+
+## 本番環境
+
+- URL: https://task-2h1htww1w-katacreates-projects.vercel.app/
+- 最終デプロイ: 2025年6月23日
+
+## 修正履歴
+
+- 2025年6月23日: カンバンボードの無限ループ修正、パフォーマンス最適化
 
 ## Getting Started
 
