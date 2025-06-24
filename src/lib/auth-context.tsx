@@ -22,12 +22,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const profileLoadingRef = useRef(false);
   const sessionCheckRef = useRef(false);
+  const lastRefreshRef = useRef(0);
+
+  // マウント状態の管理
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // セッション復元とプロファイル読み込み
   const initializeAuth = async () => {
-    if (sessionCheckRef.current) return;
+    if (sessionCheckRef.current) {
+      console.log("⏭️ 認証初期化中 - スキップ");
+      return;
+    }
     sessionCheckRef.current = true;
 
     try {
@@ -49,7 +59,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-        await loadProfile(session.user.id);
+        // プロファイルが既に読み込まれている場合は再読み込みしない
+        if (!profile || profile.id !== session.user.id) {
+          await loadProfile(session.user.id);
+        } else {
+          console.log("⏭️ プロファイルは既に読み込み済み - スキップ");
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -65,6 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // セッション更新関数
   const refreshSession = async () => {
+    // 前回の更新から5秒以内ならスキップ
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 5000) {
+      console.log("⏭️ セッション更新をスキップ（前回から5秒以内）");
+      return;
+    }
+    lastRefreshRef.current = now;
+
     try {
       console.log("🔄 セッション更新開始");
       const {
@@ -79,7 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-        await loadProfile(session.user.id);
+        // プロファイルが既に読み込まれている場合は再読み込みしない
+        if (!profile || profile.id !== session.user.id) {
+          await loadProfile(session.user.id);
+        } else {
+          console.log("⏭️ プロファイルは既に読み込み済み - スキップ");
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -99,42 +128,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("🔐 認証状態変更:", event);
 
-      setUser(session?.user ?? null);
       if (session?.user) {
-        await loadProfile(session.user.id);
+        setUser(session.user);
+        // プロファイルが既に読み込まれている場合は再読み込みしない
+        if (!profile || profile.id !== session.user.id) {
+          await loadProfile(session.user.id);
+        } else {
+          console.log("⏭️ プロファイルは既に読み込み済み - スキップ");
+          setLoading(false);
+        }
       } else {
+        console.log("🔓 ユーザーがログアウト");
+        setUser(null);
         setProfile(null);
         setLoading(false);
       }
     });
 
-    // ページフォーカス時のセッション確認
-    const handleFocus = () => {
-      if (user) {
-        console.log("🔄 ページフォーカス - セッション確認");
-        refreshSession();
-      }
-    };
+    // ページフォーカス時のセッション確認を無効化
+    // const handleFocus = () => {
+    //   if (user) {
+    //     console.log("🔄 ページフォーカス - セッション確認");
+    //     refreshSession();
+    //   }
+    // };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && user) {
-        console.log("👁️ ページ可視化 - セッション確認");
-        refreshSession();
-      }
-    };
+    // const handleVisibilityChange = () => {
+    //   if (document.visibilityState === "visible" && user) {
+    //     console.log("👁️ ページ可視化 - セッション確認");
+    //     refreshSession();
+    //   }
+    // };
 
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // window.addEventListener("focus", handleFocus);
+    // document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      // window.removeEventListener("focus", handleFocus);
+      // document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [profile]);
 
   const loadProfile = async (userId: string) => {
-    if (profileLoadingRef.current) return;
+    if (profileLoadingRef.current) {
+      console.log("⏭️ プロファイル読み込み中 - スキップ");
+      return;
+    }
 
     try {
       profileLoadingRef.current = true;
@@ -148,15 +188,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // プロファイルが見つからない場合は初期化を実行
         const user = await auth.getCurrentUser();
         if (user) {
-          const { profile } = await initializeUserData(
-            userId,
-            user.email!,
-            user.user_metadata?.name
-          );
-          setProfile(profile);
+          try {
+            const { profile } = await initializeUserData(
+              userId,
+              user.email!,
+              user.user_metadata?.name
+            );
+            setProfile(profile);
+            console.log("✅ プロファイル初期化完了");
+          } catch (initError) {
+            console.error("❌ プロファイル初期化エラー:", initError);
+            // 初期化に失敗してもプロファイルをnullに設定
+            setProfile(null);
+          }
         }
       } else {
+        console.log("✅ 既存プロファイル取得成功");
         setProfile(data);
+
         // プロファイルはあるが制作状況がない可能性もあるので、制作状況も確認
         try {
           const { data: statuses } = await supabase
@@ -167,77 +216,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (!statuses || statuses.length === 0) {
             console.log("制作状況が見つかりません。初期化を実行します...");
-            await initializeUserData(userId, data.email, data.name || undefined);
+            try {
+              await initializeUserData(userId, data.email, data.name || undefined);
+              console.log("✅ 制作状況初期化完了");
+            } catch (statusInitError) {
+              console.error("❌ 制作状況初期化エラー:", statusInitError);
+            }
           }
         } catch (statusError) {
           console.error("制作状況確認エラー:", statusError);
         }
       }
     } catch (error) {
-      console.error("プロファイル取得エラー:", error);
+      console.error("❌ プロファイル取得エラー:", error);
+      setProfile(null);
     } finally {
+      console.log("🏁 プロファイル読み込み完了");
       setLoading(false);
       profileLoadingRef.current = false;
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    console.log("🔐 ログイン試行開始:", { email });
-
     try {
-      const { error } = await auth.signIn(email, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
-        console.error("❌ ログインエラー詳細:", {
-          message: (error as any)?.message,
-          status: (error as any)?.status,
-          statusText: (error as any)?.statusText,
-          name: (error as any)?.name,
-          stack: (error as any)?.stack,
-          fullError: error,
-        });
-        setLoading(false);
         return { error };
       }
 
-      console.log("✅ ログイン成功");
+      if (data.user) {
+        setUser(data.user);
+        await loadProfile(data.user.id);
+      }
+
       return { error: null };
-    } catch (err) {
-      console.error("❌ ログイン例外エラー:", err);
-      setLoading(false);
-      return { error: err };
+    } catch (error) {
+      return { error };
     }
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
-    setLoading(true);
-    const { error } = await auth.signUp(email, password, name);
-    if (error) {
-      setLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || "",
+          },
+        },
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      if (data.user) {
+        setUser(data.user);
+        await loadProfile(data.user.id);
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
     }
-    return { error };
   };
 
   const signOut = async () => {
-    setLoading(true);
-    await auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setLoading(false);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+    } catch (error) {
+      console.error("ログアウトエラー:", error);
+    }
   };
 
-  const value = {
-    user,
-    profile,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    refreshSession,
-  };
+  // サーバーサイドレンダリング中は何も表示しない
+  if (!mounted) {
+    return null;
+  }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        refreshSession,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

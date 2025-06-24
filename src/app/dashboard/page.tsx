@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { getDashboardStats, DashboardStats } from "@/lib/api/dashboard";
@@ -11,26 +11,39 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
+  // マウント状態の管理
   useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
+    setMounted(true);
+  }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      console.log("📊 ダッシュボードデータ読み込み開始");
       const data = await getDashboardStats();
+      console.log("✅ ダッシュボードデータ取得成功:", data);
       setStats(data);
     } catch (err) {
-      console.error("ダッシュボードデータ取得エラー:", err);
+      console.error("❌ ダッシュボードデータ取得エラー:", err);
       setError(err instanceof Error ? err.message : "データの取得に失敗しました");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user && mounted) {
+      loadDashboardData();
+    }
+  }, [user, mounted, loadDashboardData]);
+
+  // サーバーサイドレンダリング中は何も表示しない
+  if (!mounted) {
+    return null;
+  }
 
   // 認証チェック
   if (authLoading) {
@@ -91,7 +104,19 @@ export default function DashboardPage() {
   }
 
   if (!stats) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">データが見つかりません</h1>
+          <button
+            onClick={loadDashboardData}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            データを再読み込み
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -213,27 +238,27 @@ export default function DashboardPage() {
             <StatsCard
               title="今日期限"
               value={stats.todayTasks}
-              subtitle="今日が期限のタスク"
+              subtitle={`今週: ${stats.thisWeekTasks}件`}
               icon="🎯"
               color="orange"
             />
             <StatsCard
-              title="期限切れ"
+              title="期限切れタスク"
               value={stats.overdueTasks}
-              subtitle="対応が必要です"
+              subtitle={`緊急度: ${stats.overdueTasks > 0 ? "高" : "低"}`}
               icon="⚠️"
               color="red"
             />
           </div>
 
-          {/* 詳細情報 */}
+          {/* チャートセクション */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 優先度分布 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">優先度分布</h3>
-              <div className="space-y-2">
+            {/* 優先度別タスク分布 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">優先度別タスク分布</h3>
+              <div className="space-y-3">
                 {stats.priorityDistribution.map((item) => (
-                  <div key={item.priority} className="flex items-center justify-between">
+                  <div key={item.priority} className="flex justify-between items-center">
                     <span className="text-sm text-gray-900">
                       {item.priority === "urgent"
                         ? "緊急"
@@ -243,95 +268,86 @@ export default function DashboardPage() {
                         ? "中"
                         : "低"}
                     </span>
-                    <span className="text-sm font-medium">
-                      {item.count}件 ({item.percentage}%)
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            item.priority === "urgent"
+                              ? "bg-red-600"
+                              : item.priority === "high"
+                              ? "bg-orange-600"
+                              : item.priority === "medium"
+                              ? "bg-yellow-600"
+                              : "bg-green-600"
+                          }`}
+                          style={{ width: `${item.percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">{item.count}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ステータス分布 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">ステータス分布</h3>
-              <div className="space-y-2">
-                {stats.statusDistribution.map((item) => (
-                  <div key={item.status} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-900">
-                      {item.status === "todo"
-                        ? "未着手"
-                        : item.status === "in_progress"
-                        ? "進行中"
-                        : item.status === "review"
-                        ? "レビュー"
-                        : item.status === "blocked"
-                        ? "ブロック"
-                        : "完了"}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {item.count}件 ({item.percentage}%)
-                    </span>
+            {/* 週間進捗 */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">週間進捗</h3>
+              <div className="space-y-3">
+                {stats.weeklyProgress.map((day, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-sm text-gray-900">{day.week}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{
+                            width: `${
+                              day.created > 0 ? Math.round((day.completed / day.created) * 100) : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {day.created > 0 ? Math.round((day.completed / day.created) * 100) : 0}%
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* 期限が近いタスクと最近のアクティビティ */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 期限が近いタスク */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">期限が近いタスク</h3>
-              {stats.upcomingDeadlines.length > 0 ? (
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {stats.upcomingDeadlines.map((task) => (
-                    <div key={task.id} className="p-3 border border-gray-200 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                      <p className="text-xs text-gray-900 mt-1">{task.project_name}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-900">
-                          期限: {new Date(task.due_date).toLocaleDateString("ja-JP")}
-                        </span>
-                        <span className="text-xs text-gray-900">
-                          {task.days_until_due === 0 ? "今日" : `${task.days_until_due}日後`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-gray-900 py-8">期限が近いタスクはありません</p>
-              )}
-            </div>
-
-            {/* 最近のアクティビティ */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">最近のアクティビティ</h3>
+          {/* 最近のアクティビティ */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">最近のアクティビティ</h3>
+            <div className="space-y-3">
               {stats.recentActivity.length > 0 ? (
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {stats.recentActivity.map((activity) => (
-                    <div key={activity.id} className="p-3 border border-gray-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">
-                          {activity.type === "task_created"
-                            ? "タスク作成"
-                            : activity.type === "task_completed"
-                            ? "タスク完了"
-                            : "案件作成"}
-                        </span>
-                        <span className="text-xs text-gray-900">
-                          {new Date(activity.created_at).toLocaleDateString("ja-JP")}
+                stats.recentActivity.map((activity, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                        <span className="text-indigo-600 text-sm font-medium">
+                          {activity.type === "task_completed" ? "✅" : "📝"}
                         </span>
                       </div>
-                      <h4 className="text-sm text-gray-900">{activity.title}</h4>
-                      {activity.project_name && (
-                        <p className="text-xs text-gray-900 mt-1">{activity.project_name}</p>
-                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                      <p className="text-sm text-gray-500">{activity.project_name}</p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span className="text-sm text-gray-500">
+                        {new Date(activity.created_at).toLocaleDateString("ja-JP")}
+                      </span>
+                    </div>
+                  </div>
+                ))
               ) : (
-                <p className="text-center text-gray-900 py-8">最近のアクティビティはありません</p>
+                <p className="text-gray-500 text-center py-4">最近のアクティビティはありません</p>
               )}
             </div>
           </div>

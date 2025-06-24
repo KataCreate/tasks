@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getProjects, getProjectStatuses, deleteProject } from "@/lib/api/projects";
+import { getProjects, getProjectStatuses, deleteProject, moveProject } from "@/lib/api/projects";
 import { ProjectWithStatus, ProjectStatus } from "@/lib/database.types";
 import { ProjectForm } from "./project-form";
 import { TaskManager } from "../tasks/task-manager";
 import { StatusManager } from "./status-manager";
+import { KanbanBoard } from "../kanban/kanban-board";
 
 export function ProjectList() {
   const { user } = useAuth();
@@ -17,8 +18,7 @@ export function ProjectList() {
   const [editingProject, setEditingProject] = useState<ProjectWithStatus | null>(null);
   const [managingTasksProject, setManagingTasksProject] = useState<ProjectWithStatus | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const loadingRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
@@ -29,10 +29,10 @@ export function ProjectList() {
     async (forceReload = false) => {
       if (!user?.id) return;
 
-      // 強制リロードでない場合、前回の読み込みから5秒以内ならスキップ
+      // 強制リロードでない場合、前回の読み込みから10秒以内ならスキップ
       const now = Date.now();
-      if (!forceReload && now - lastLoadTimeRef.current < 5000) {
-        console.log("⏭️ データ読み込みをスキップ（前回から5秒以内）");
+      if (!forceReload && now - lastLoadTimeRef.current < 10000) {
+        console.log("⏭️ データ読み込みをスキップ（前回から10秒以内）");
         return;
       }
 
@@ -81,33 +81,6 @@ export function ProjectList() {
     }
   }, [user?.id, loadData]);
 
-  // ページフォーカス時のデータ再読み込み
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user?.id) {
-        console.log("🔄 ページフォーカス検出 - データ再読み込み");
-        loadData(true);
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && user?.id) {
-        console.log("👁️ ページ可視化検出 - データ再読み込み");
-        loadData(true);
-      }
-    };
-
-    // ページフォーカスイベント
-    window.addEventListener("focus", handleFocus);
-    // ページ可視性変更イベント
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [user?.id, loadData]);
-
   // 初回マウント時のデータ読み込み
   useEffect(() => {
     if (user?.id && projects.length === 0 && statuses.length === 0) {
@@ -115,6 +88,11 @@ export function ProjectList() {
       loadData(true);
     }
   }, [user?.id, projects.length, statuses.length, loadData]);
+
+  const handleProjectEdit = (project: ProjectWithStatus) => {
+    setEditingProject(project);
+    setShowCreateForm(true);
+  };
 
   const handleProjectCreated = () => {
     setShowCreateForm(false);
@@ -139,330 +117,223 @@ export function ProjectList() {
     }
   };
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesStatus = filterStatus === "all" || project.status_id === filterStatus;
-    const matchesSearch =
-      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesStatus && matchesSearch;
-  });
+  const handleProjectUpdate = async (projectId: string, statusId: string) => {
+    try {
+      // 新しいステータスでの最大sort_orderを取得
+      const projectsInNewStatus = projects.filter((p) => p.project_statuses?.id === statusId);
+      const maxSortOrder = Math.max(...projectsInNewStatus.map((p) => p.sort_order || 0), -1);
 
-  const getStatusColor = (statusId: string | null) => {
-    if (!statusId) return "#6B7280";
-    const status = statuses.find((s) => s.id === statusId);
-    return status?.color || "#6B7280";
-  };
+      await moveProject(projectId, statusId, maxSortOrder + 1);
 
-  const getStatusName = (statusId: string | null) => {
-    if (!statusId) return "不明";
-    const status = statuses.find((s) => s.id === statusId);
-    return status?.name || "不明";
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("ja-JP");
+      // ローカル状態を更新
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                status_id: statusId,
+                project_statuses: statuses.find((s) => s.id === statusId) || null,
+                sort_order: maxSortOrder + 1,
+              }
+            : project
+        )
+      );
+    } catch (error) {
+      console.error("プロジェクトステータス更新エラー:", error);
+      // エラーが発生した場合はデータを再読み込み
+      loadData(true);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <span className="ml-2 text-gray-900">データを読み込み中...</span>
       </div>
     );
   }
 
   return (
-    <div className="h-full">
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">案件一覧</h2>
-        <div className="flex gap-3">
+    <div className="space-y-6">
+      {/* ヘッダー */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">案件一覧</h2>
+          <p className="text-gray-900">{projects.length}件の案件</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* ビューモード切り替え */}
+          <div className="flex bg-gray-100 rounded-md p-1">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                viewMode === "kanban"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              カンバン
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                viewMode === "list"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              リスト
+            </button>
+          </div>
           <button
             onClick={() => setShowStatusManager(true)}
-            className="border border-gray-300 text-gray-900 px-4 py-2 rounded-md text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
-            <svg
-              className="-ml-1 mr-2 h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
             制作状況管理
           </button>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
-            <svg className="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            新規案件
+            新規案件作成
           </button>
         </div>
       </div>
 
-      {statuses.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-md mx-auto">
-            <div className="flex flex-col items-center">
-              <svg
-                className="w-12 h-12 text-yellow-600 mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
-              <h3 className="text-lg font-medium text-yellow-800 mb-2">制作状況が見つかりません</h3>
-              <p className="text-yellow-700 mb-4 text-center">
-                右上の「初期設定」ボタンから初期データを作成してください。
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                ページを再読み込み
-              </button>
-            </div>
-          </div>
+      {/* カンバンボードビュー */}
+      {viewMode === "kanban" ? (
+        <div className="h-[calc(100vh-200px)]">
+          <KanbanBoard
+            projects={projects}
+            statuses={statuses}
+            onProjectUpdate={handleProjectUpdate}
+            onProjectEdit={handleProjectEdit}
+            onProjectDelete={handleDeleteProject}
+            onProjectTasks={setManagingTasksProject}
+          />
         </div>
       ) : (
-        <>
-          {/* フィルターと検索 */}
-          <div className="mb-6 flex gap-4 items-center">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="案件名または説明で検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-900 text-gray-900"
-              />
+        /* リストビュー（既存の実装） */
+        <div className="space-y-4">
+          {projects.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-900 text-lg font-medium mb-2">案件がありません</div>
+              <p className="text-gray-900 mb-4">最初の案件を作成して始めましょう</p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium"
+              >
+                最初の案件を作成
+              </button>
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">すべての制作状況</option>
-              {statuses.map((status) => (
-                <option key={status.id} value={status.id}>
-                  {status.name}
-                </option>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate flex-1">
+                        {project.name}
+                      </h3>
+                      <div className="flex space-x-2 ml-2">
+                        <button
+                          onClick={() => handleProjectEdit(project)}
+                          className="text-gray-400 hover:text-gray-600"
+                          title="編集"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="text-gray-400 hover:text-red-600"
+                          title="削除"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {project.description && (
+                      <p className="text-gray-900 text-sm mb-4 line-clamp-2">
+                        {project.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        {project.project_statuses ? (
+                          <span
+                            className="px-2 py-1 text-xs font-medium rounded-full"
+                            style={{
+                              backgroundColor: `${project.project_statuses.color}20`,
+                              color: project.project_statuses.color,
+                            }}
+                          >
+                            {project.project_statuses.name}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                            状況未設定
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-900">
+                        {new Date(project.created_at).toLocaleDateString("ja-JP")}
+                      </span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setManagingTasksProject(project)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                      >
+                        タスク管理
+                      </button>
+                      <button
+                        onClick={() => handleProjectEdit(project)}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                      >
+                        編集
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </select>
-          </div>
-
-          {/* 案件一覧テーブル */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                      案件名
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                      制作状況
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                      納期
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                      タスク進捗
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                      操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProjects.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-4 text-center text-gray-900">
-                        案件が見つかりません
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredProjects.map((project) => {
-                      const completedTasksCount = project.tasks.filter(
-                        (task) => task.is_completed
-                      ).length;
-                      const totalTasksCount = project.tasks.length;
-                      const progressPercentage =
-                        totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0;
-
-                      return (
-                        <tr key={project.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {project.name}
-                              </div>
-                              {project.description && (
-                                <div className="text-sm text-gray-900 truncate max-w-xs">
-                                  {project.description}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                              style={{
-                                backgroundColor: `${getStatusColor(project.status_id)}20`,
-                                color: getStatusColor(project.status_id),
-                              }}
-                            >
-                              <div
-                                className="w-2 h-2 rounded-full mr-1"
-                                style={{ backgroundColor: getStatusColor(project.status_id) }}
-                              ></div>
-                              {getStatusName(project.status_id)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(project.delivery_date)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-1 mr-2">
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${progressPercentage}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                              <span className="text-sm text-gray-900">
-                                {completedTasksCount}/{totalTasksCount}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => setManagingTasksProject(project)}
-                                className="text-indigo-600 hover:text-indigo-900"
-                                title="タスク管理"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                                  />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => setEditingProject(project)}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="編集"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                  />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProject(project.id)}
-                                className="text-red-600 hover:text-red-900"
-                                title="削除"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
             </div>
-          </div>
-
-          {/* 統計情報 */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-900">総案件数</div>
-              <div className="text-2xl font-bold text-gray-900">{projects.length}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-900">制作状況数</div>
-              <div className="text-2xl font-bold text-gray-900">{statuses.length}</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-900">総タスク数</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {projects.reduce((total, project) => total + project.tasks.length, 0)}
-              </div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-900">完了タスク数</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {projects.reduce(
-                  (total, project) =>
-                    total + project.tasks.filter((task) => task.is_completed).length,
-                  0
-                )}
-              </div>
-            </div>
-          </div>
-        </>
+          )}
+        </div>
       )}
 
       {/* モーダル */}
-      {(showCreateForm || editingProject) && (
+      {showCreateForm && (
         <ProjectForm
           statuses={statuses}
           project={editingProject}

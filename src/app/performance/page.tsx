@@ -13,12 +13,19 @@ export default function PerformancePage() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const [networkInfo, setNetworkInfo] = useState<any>(null);
   const [connectionTest, setConnectionTest] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    measurePerformance();
-    testConnections();
-    getNetworkInfo();
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      measurePerformance();
+      testConnections();
+      getNetworkInfo();
+    }
+  }, [mounted]);
 
   const measurePerformance = () => {
     if (typeof window === "undefined") return;
@@ -30,7 +37,7 @@ export default function PerformancePage() {
 
     // ページ読み込み時間
     if (navigation) {
-      const loadTime = navigation.loadEventEnd - navigation.navigationStart;
+      const loadTime = navigation.loadEventEnd - navigation.fetchStart;
       newMetrics.push({
         name: "ページ読み込み時間",
         value: Math.round(loadTime),
@@ -57,7 +64,7 @@ export default function PerformancePage() {
       });
 
       // DOM構築時間
-      const domTime = navigation.domContentLoadedEventEnd - navigation.navigationStart;
+      const domTime = navigation.domContentLoadedEventEnd - navigation.fetchStart;
       newMetrics.push({
         name: "DOM構築時間",
         value: Math.round(domTime),
@@ -66,243 +73,266 @@ export default function PerformancePage() {
       });
     }
 
-    // First Paint
-    const fp = paint.find((entry) => entry.name === "first-paint");
-    if (fp) {
-      newMetrics.push({
-        name: "First Paint",
-        value: Math.round(fp.startTime),
-        unit: "ms",
-        status: fp.startTime < 1000 ? "good" : fp.startTime < 2000 ? "needs-improvement" : "poor",
-      });
-    }
+    // ペイント時間
+    if (paint && paint.length > 0) {
+      const firstPaint = paint.find((entry) => entry.name === "first-paint");
+      const firstContentfulPaint = paint.find((entry) => entry.name === "first-contentful-paint");
 
-    // First Contentful Paint
-    const fcp = paint.find((entry) => entry.name === "first-contentful-paint");
-    if (fcp) {
-      newMetrics.push({
-        name: "First Contentful Paint",
-        value: Math.round(fcp.startTime),
-        unit: "ms",
-        status: fcp.startTime < 1500 ? "good" : fcp.startTime < 2500 ? "needs-improvement" : "poor",
-      });
+      if (firstPaint) {
+        newMetrics.push({
+          name: "First Paint",
+          value: Math.round(firstPaint.startTime),
+          unit: "ms",
+          status:
+            firstPaint.startTime < 1000
+              ? "good"
+              : firstPaint.startTime < 2000
+              ? "needs-improvement"
+              : "poor",
+        });
+      }
+
+      if (firstContentfulPaint) {
+        newMetrics.push({
+          name: "First Contentful Paint",
+          value: Math.round(firstContentfulPaint.startTime),
+          unit: "ms",
+          status:
+            firstContentfulPaint.startTime < 1500
+              ? "good"
+              : firstContentfulPaint.startTime < 2500
+              ? "needs-improvement"
+              : "poor",
+        });
+      }
     }
 
     setMetrics(newMetrics);
   };
 
   const testConnections = async () => {
-    const tests = [];
+    if (typeof window === "undefined") return;
+
+    const results = {
+      supabase: null as any,
+      network: null as any,
+    };
 
     // Supabase接続テスト
-    const supabaseStart = performance.now();
     try {
-      const response = await fetch("/api/health/supabase", {
-        method: "GET",
-        cache: "no-cache",
-      });
-      const supabaseTime = performance.now() - supabaseStart;
-      tests.push({
-        name: "Supabase接続",
-        time: Math.round(supabaseTime),
+      const start = performance.now();
+      const response = await fetch("/api/health");
+      const end = performance.now();
+      results.supabase = {
         status: response.ok ? "success" : "error",
-        details: response.ok ? "正常" : `エラー: ${response.status}`,
-      });
+        time: Math.round(end - start),
+        statusCode: response.status,
+      };
     } catch (error) {
-      tests.push({
-        name: "Supabase接続",
-        time: 0,
+      results.supabase = {
         status: "error",
-        details: "接続失敗",
-      });
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
 
-    // Vercel エッジ関数テスト
-    const vercelStart = performance.now();
-    try {
-      const response = await fetch("/api/health/edge", {
-        method: "GET",
-        cache: "no-cache",
-      });
-      const vercelTime = performance.now() - vercelStart;
-      tests.push({
-        name: "Vercel Edge",
-        time: Math.round(vercelTime),
-        status: response.ok ? "success" : "error",
-        details: response.ok ? "正常" : `エラー: ${response.status}`,
-      });
-    } catch (error) {
-      tests.push({
-        name: "Vercel Edge",
-        time: 0,
-        status: "error",
-        details: "接続失敗",
-      });
+    // ネットワーク接続テスト
+    if ("connection" in navigator) {
+      const connection = (navigator as any).connection;
+      results.network = {
+        effectiveType: connection.effectiveType,
+        downlink: connection.downlink,
+        rtt: connection.rtt,
+        saveData: connection.saveData,
+      };
     }
 
-    setConnectionTest(tests);
+    setConnectionTest(results);
   };
 
   const getNetworkInfo = () => {
     if (typeof window === "undefined") return;
 
-    const connection =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+    const info = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      onLine: navigator.onLine,
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+    };
 
-    if (connection) {
-      setNetworkInfo({
-        effectiveType: connection.effectiveType,
-        downlink: connection.downlink,
-        rtt: connection.rtt,
-        saveData: connection.saveData,
-      });
-    }
+    setNetworkInfo(info);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "good":
-      case "success":
-        return "text-green-600 bg-green-100";
-      case "needs-improvement":
-        return "text-yellow-600 bg-yellow-100";
-      case "poor":
-      case "error":
-        return "text-red-600 bg-red-100";
-      default:
-        return "text-gray-900 bg-gray-100";
-    }
-  };
-
-  const reloadPage = () => {
-    window.location.reload();
-  };
+  // サーバーサイドレンダリング中は何も表示しない
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">パフォーマンス監視</h1>
-          <button
-            onClick={reloadPage}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          >
-            再測定
-          </button>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">パフォーマンス監視</h1>
 
-        {/* ページパフォーマンス */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">ページパフォーマンス</h2>
+        {/* パフォーマンスメトリクス */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">パフォーマンスメトリクス</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {metrics.map((metric, index) => (
-              <div key={index} className="border rounded p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900">{metric.name}</span>
-                  <span className={`px-2 py-1 rounded text-xs ${getStatusColor(metric.status)}`}>
+              <div
+                key={index}
+                className={`p-4 rounded-lg border ${
+                  metric.status === "good"
+                    ? "border-green-200 bg-green-50"
+                    : metric.status === "needs-improvement"
+                    ? "border-yellow-200 bg-yellow-50"
+                    : "border-red-200 bg-red-50"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{metric.name}</h3>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {metric.value} {metric.unit}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      metric.status === "good"
+                        ? "bg-green-100 text-green-800"
+                        : metric.status === "needs-improvement"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
                     {metric.status === "good"
                       ? "良好"
                       : metric.status === "needs-improvement"
-                      ? "改善要"
-                      : "要対応"}
+                      ? "改善必要"
+                      : "不良"}
                   </span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900 mt-2">
-                  {metric.value}
-                  {metric.unit}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 接続テスト */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">接続テスト</h2>
-          {connectionTest ? (
-            <div className="space-y-4">
-              {connectionTest.map((test: any, index: number) => (
-                <div key={index} className="flex justify-between items-center p-4 border rounded">
-                  <div>
-                    <div className="font-medium">{test.name}</div>
-                    <div className="text-sm text-gray-900">{test.details}</div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="text-lg font-semibold">{test.time}ms</span>
-                    <span className={`px-2 py-1 rounded text-xs ${getStatusColor(test.status)}`}>
-                      {test.status === "success" ? "成功" : "エラー"}
+        {/* 接続テスト結果 */}
+        {connectionTest && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">接続テスト結果</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2">Supabase接続</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">ステータス:</span>
+                    <span
+                      className={`font-medium ${
+                        connectionTest.supabase?.status === "success"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {connectionTest.supabase?.status === "success" ? "成功" : "失敗"}
                     </span>
                   </div>
+                  {connectionTest.supabase?.time && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">応答時間:</span>
+                      <span className="font-medium text-gray-900">
+                        {connectionTest.supabase.time}ms
+                      </span>
+                    </div>
+                  )}
+                  {connectionTest.supabase?.statusCode && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ステータスコード:</span>
+                      <span className="font-medium text-gray-900">
+                        {connectionTest.supabase.statusCode}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-900">接続テスト実行中...</p>
-            </div>
-          )}
-        </div>
+              </div>
 
-        {/* ネットワーク情報 */}
-        {networkInfo && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">ネットワーク情報</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{networkInfo.effectiveType}</div>
-                <div className="text-sm text-gray-900">接続タイプ</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{networkInfo.downlink} Mbps</div>
-                <div className="text-sm text-gray-900">ダウンロード速度</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-600">{networkInfo.rtt}ms</div>
-                <div className="text-sm text-gray-900">レイテンシ</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {networkInfo.saveData ? "ON" : "OFF"}
+              {connectionTest.network && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-2">ネットワーク情報</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">接続タイプ:</span>
+                      <span className="font-medium text-gray-900">
+                        {connectionTest.network.effectiveType}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ダウンリンク:</span>
+                      <span className="font-medium text-gray-900">
+                        {connectionTest.network.downlink} Mbps
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">RTT:</span>
+                      <span className="font-medium text-gray-900">
+                        {connectionTest.network.rtt}ms
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-900">データセーバー</div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* 推奨事項 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">パフォーマンス改善の推奨事項</h2>
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></span>
-              <span>ページの初回読み込み後、データはキャッシュされます</span>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></span>
-              <span>
-                低速な接続環境では、画像と大きなコンポーネントの読み込みに時間がかかります
-              </span>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></span>
-              <span>Vercelのエッジキャッシュにより、2回目以降のアクセスは高速化されます</span>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></span>
-              <span>ブラウザキャッシュをクリアすると、再度読み込み時間がかかる場合があります</span>
-            </li>
-          </ul>
-        </div>
+        {/* ネットワーク情報 */}
+        {networkInfo && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">ブラウザ情報</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2">基本情報</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">プラットフォーム:</span>
+                    <span className="font-medium text-gray-900">{networkInfo.platform}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">言語:</span>
+                    <span className="font-medium text-gray-900">{networkInfo.language}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">オンライン:</span>
+                    <span
+                      className={`font-medium ${
+                        networkInfo.onLine ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {networkInfo.onLine ? "はい" : "いいえ"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cookie有効:</span>
+                    <span
+                      className={`font-medium ${
+                        networkInfo.cookieEnabled ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {networkInfo.cookieEnabled ? "はい" : "いいえ"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-        <div className="mt-8 text-center">
-          <a href="/" className="text-indigo-600 hover:text-indigo-500">
-            メインページに戻る
-          </a>
-        </div>
+              <div>
+                <h3 className="font-medium text-gray-900 mb-2">User Agent</h3>
+                <div className="bg-gray-50 p-3 rounded text-sm text-gray-700 break-all">
+                  {networkInfo.userAgent}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
