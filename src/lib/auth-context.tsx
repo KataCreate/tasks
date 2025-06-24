@@ -43,11 +43,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("🔐 認証状態初期化開始");
 
-      // 現在のセッションを取得
+      // タイムアウト付きでセッション取得を実行
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null }; error: null }>((resolve) => {
+        setTimeout(() => {
+          console.warn("⚠️ セッション取得タイムアウト");
+          resolve({ data: { session: null }, error: null });
+        }, 5000);
+      });
+
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } = await Promise.race([sessionPromise, timeoutPromise]);
 
       if (sessionError) {
         console.error("❌ セッション取得エラー:", sessionError);
@@ -128,19 +136,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("🔐 認証状態変更:", event);
 
-      if (session?.user) {
-        setUser(session.user);
-        // プロファイルが既に読み込まれている場合は再読み込みしない
-        if (!profile || profile.id !== session.user.id) {
-          await loadProfile(session.user.id);
+      try {
+        if (session?.user) {
+          setUser(session.user);
+          // プロファイルが既に読み込まれている場合は再読み込みしない
+          if (!profile || profile.id !== session.user.id) {
+            await loadProfile(session.user.id);
+          } else {
+            console.log("⏭️ プロファイルは既に読み込み済み - スキップ");
+            setLoading(false);
+          }
         } else {
-          console.log("⏭️ プロファイルは既に読み込み済み - スキップ");
+          console.log("🔓 ユーザーがログアウト");
+          setUser(null);
+          setProfile(null);
           setLoading(false);
         }
-      } else {
-        console.log("🔓 ユーザーがログアウト");
-        setUser(null);
-        setProfile(null);
+      } catch (error) {
+        console.error("❌ 認証状態変更処理エラー:", error);
         setLoading(false);
       }
     });
@@ -168,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // window.removeEventListener("focus", handleFocus);
       // document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [profile]);
+  }, []);
 
   const loadProfile = async (userId: string) => {
     if (profileLoadingRef.current) {
@@ -180,33 +193,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileLoadingRef.current = true;
       console.log("👤 プロファイル読み込み開始:", userId);
 
-      // まず通常のプロファイル取得を試行
-      const { data, error } = await auth.getProfile(userId);
+      // タイムアウト付きでプロファイル取得を実行
+      const profilePromise = (async () => {
+        // まず通常のプロファイル取得を試行
+        const { data, error } = await auth.getProfile(userId);
 
-      if (error || !data) {
-        console.log("プロファイルが見つかりません。初期化を実行します...");
-        // プロファイルが見つからない場合は初期化を実行
-        const user = await auth.getCurrentUser();
-        if (user) {
-          try {
-            const { profile } = await initializeUserData(
-              userId,
-              user.email!,
-              user.user_metadata?.name
-            );
-            setProfile(profile);
-            console.log("✅ プロファイル初期化完了");
-          } catch (initError) {
-            console.error("❌ プロファイル初期化エラー:", initError);
-            // 初期化に失敗してもプロファイルをnullに設定
-            setProfile(null);
+        if (error || !data) {
+          console.log("プロファイルが見つかりません。初期化を実行します...");
+          // プロファイルが見つからない場合は初期化を実行
+          const user = await auth.getCurrentUser();
+          if (user) {
+            try {
+              const { profile } = await initializeUserData(
+                userId,
+                user.email!,
+                user.user_metadata?.name
+              );
+              return profile;
+            } catch (initError) {
+              console.error("❌ プロファイル初期化エラー:", initError);
+              return null;
+            }
           }
+          return null;
+        } else {
+          console.log("✅ 既存プロファイル取得成功");
+          return data;
         }
-      } else {
-        console.log("✅ 既存プロファイル取得成功");
-        setProfile(data);
+      })();
 
-        // プロファイルはあるが制作状況がない可能性もあるので、制作状況も確認
+      // 10秒のタイムアウトを設定
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn("⚠️ プロファイル読み込みタイムアウト");
+          resolve(null);
+        }, 10000);
+      });
+
+      const profile = await Promise.race([profilePromise, timeoutPromise]);
+      setProfile(profile);
+
+      // プロファイルが取得できた場合、制作状況も確認
+      if (profile) {
         try {
           const { data: statuses } = await supabase
             .from("project_statuses")
@@ -217,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!statuses || statuses.length === 0) {
             console.log("制作状況が見つかりません。初期化を実行します...");
             try {
-              await initializeUserData(userId, data.email, data.name || undefined);
+              await initializeUserData(userId, profile.email, profile.name || undefined);
               console.log("✅ 制作状況初期化完了");
             } catch (statusInitError) {
               console.error("❌ 制作状況初期化エラー:", statusInitError);
