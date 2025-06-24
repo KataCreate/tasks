@@ -26,6 +26,7 @@ export function ProjectCard({
     transform,
     transition,
     isDragging: isSortableDragging,
+    setActivatorNodeRef,
   } = useSortable({ id: project.id });
 
   const style = {
@@ -39,39 +40,31 @@ export function ProjectCard({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`
-        bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-grab
-        hover:shadow-md transition-all duration-200
-        ${dragging ? "opacity-50 shadow-lg scale-105 rotate-1" : ""}
-        ${dragging ? "cursor-grabbing" : "cursor-grab"}
-        hover:scale-[1.02] active:scale-[0.98]
-      `}
+      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-50 rotate-2 scale-105 shadow-lg" : ""
+      }`}
     >
       {/* ドラッグハンドル */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-1">
-          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
         </div>
-        <span className="text-xs text-gray-400">ドラッグ</span>
-      </div>
-
-      {/* プロジェクトヘッダー */}
-      <div className="flex justify-between items-start mb-3">
-        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 flex-1">{project.name}</h4>
-        <div className="flex space-x-1 ml-2">
+        <div className="flex items-center space-x-1 ml-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className="text-gray-400 hover:text-gray-600 p-1"
+            ref={setActivatorNodeRef}
+            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            title="ドラッグして移動"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M7 2a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 2zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 8zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 14zm6-8a2 2 0 1 1-.001-4.001A2 2 0 0 1 13 6zm0 2a2 2 0 1 1 .001 4.001A2 2 0 0 1 13 8zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 13 14z" />
+            </svg>
+          </button>
+          <button
+            onClick={onEdit}
+            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
             title="編集"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -81,14 +74,11 @@ export function ProjectCard({
             </svg>
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="text-gray-400 hover:text-red-600 p-1"
+            onClick={onDelete}
+            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
             title="削除"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -100,37 +90,47 @@ export function ProjectCard({
         </div>
       </div>
 
-      {/* プロジェクト説明 */}
-      {project.description && (
-        <p className="text-gray-600 text-xs mb-3 line-clamp-2">{project.description}</p>
-      )}
-
-      {/* プロジェクト情報 */}
-      <div className="space-y-2 mb-3">
-        {/* 作成日 */}
-        <div className="text-xs text-gray-500">
-          作成: {new Date(project.created_at).toLocaleDateString("ja-JP")}
+      {/* プロジェクト詳細 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">納期:</span>
+          <span className="font-medium text-gray-900">
+            {project.delivery_date
+              ? new Date(project.delivery_date).toLocaleDateString("ja-JP")
+              : "未設定"}
+          </span>
         </div>
 
-        {/* 更新日（作成日と異なる場合のみ表示） */}
-        {project.updated_at &&
-          new Date(project.updated_at).getTime() !== new Date(project.created_at).getTime() && (
-            <div className="text-xs text-gray-500">
-              更新: {new Date(project.updated_at).toLocaleDateString("ja-JP")}
-            </div>
-          )}
-      </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">作成日:</span>
+          <span className="font-medium text-gray-900">
+            {new Date(project.created_at).toLocaleDateString("ja-JP")}
+          </span>
+        </div>
 
-      {/* アクションボタン */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onTasks();
-        }}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-md font-medium transition-colors"
-      >
-        タスク管理
-      </button>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">更新日:</span>
+          <span className="font-medium text-gray-900">
+            {new Date(project.updated_at).toLocaleDateString("ja-JP")}
+          </span>
+        </div>
+
+        {project.description && (
+          <div className="mt-3">
+            <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+          </div>
+        )}
+
+        {/* タスク管理ボタン */}
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={onTasks}
+            className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium py-2 px-3 rounded-md transition-colors"
+          >
+            タスク管理
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

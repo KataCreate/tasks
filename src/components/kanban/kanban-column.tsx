@@ -49,7 +49,7 @@ export function KanbanColumn({
         {/* ドロップエリア */}
         <div
           ref={setNodeRef}
-          className={`min-h-[calc(100vh-200px)] transition-colors ${
+          className={`min-h-[calc(100vh-200px)] transition-colors relative ${
             isOver ? "bg-blue-100 rounded-lg" : ""
           }`}
         >
@@ -90,8 +90,20 @@ export function KanbanColumn({
           {/* プロジェクトがある場合のドロップインジケーター */}
           {projects.length > 0 && isOver && (
             <div className="mt-3 p-2 border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600 text-center">ここにドロップ</p>
+              <p className="text-sm text-blue-600 text-center">
+                {projects.length === 1
+                  ? "ここにドロップ"
+                  : `${projects.length}件のプロジェクトがあります`}
+              </p>
             </div>
+          )}
+
+          {/* 常に表示されるドロップエリア（透明） */}
+          <div className="h-4 w-full"></div>
+
+          {/* ドロップ可能エリアのオーバーレイ（デバッグ用） */}
+          {isOver && (
+            <div className="absolute inset-0 border-2 border-blue-400 border-dashed rounded-lg pointer-events-none"></div>
           )}
         </div>
       </div>

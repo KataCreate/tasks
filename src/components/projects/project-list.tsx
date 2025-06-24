@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getProjects, getProjectStatuses, deleteProject, moveProject } from "@/lib/api/projects";
+import {
+  getProjects,
+  getProjectStatuses,
+  deleteProject,
+  moveProject,
+  updateProject,
+} from "@/lib/api/projects";
 import { ProjectWithStatus, ProjectStatus } from "@/lib/database.types";
 import { ProjectForm } from "./project-form";
 import { TaskManager } from "../tasks/task-manager";
@@ -117,6 +123,24 @@ export function ProjectList() {
     }
   };
 
+  const handleProjectReorder = async (projectId: string, newSortOrder: number) => {
+    try {
+      console.log(`🔄 プロジェクト順番変更: ${projectId} → ${newSortOrder}`);
+      await updateProject(projectId, { sort_order: newSortOrder });
+
+      // ローカル状態を更新
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId ? { ...project, sort_order: newSortOrder } : project
+        )
+      );
+    } catch (error) {
+      console.error("プロジェクト順番変更エラー:", error);
+      // エラーが発生した場合はデータを再読み込み
+      loadData(true);
+    }
+  };
+
   const handleProjectUpdate = async (projectId: string, statusId: string) => {
     try {
       // 新しいステータスでの最大sort_orderを取得
@@ -208,6 +232,7 @@ export function ProjectList() {
             projects={projects}
             statuses={statuses}
             onProjectUpdate={handleProjectUpdate}
+            onProjectReorder={handleProjectReorder}
             onProjectEdit={handleProjectEdit}
             onProjectDelete={handleDeleteProject}
             onProjectTasks={setManagingTasksProject}

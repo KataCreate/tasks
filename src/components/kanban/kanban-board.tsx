@@ -21,6 +21,7 @@ interface KanbanBoardProps {
   projects: ProjectWithStatus[];
   statuses: ProjectStatus[];
   onProjectUpdate: (projectId: string, statusId: string) => Promise<void>;
+  onProjectReorder?: (projectId: string, newSortOrder: number) => Promise<void>;
   onProjectEdit: (project: ProjectWithStatus) => void;
   onProjectDelete: (projectId: string) => void;
   onProjectTasks: (project: ProjectWithStatus) => void;
@@ -30,6 +31,7 @@ export function KanbanBoard({
   projects,
   statuses,
   onProjectUpdate,
+  onProjectReorder,
   onProjectEdit,
   onProjectDelete,
   onProjectTasks,
@@ -127,6 +129,23 @@ export function KanbanBoard({
         await onProjectUpdate(activeProject.id, overStatusId);
       } catch (error) {
         console.error("プロジェクトステータス更新エラー:", error);
+      }
+    } else if (activeProject.project_statuses?.id === overStatusId) {
+      // 同じステータス内での順番変更
+      try {
+        console.log(`🔄 同じステータス内での順番変更: ${activeProject.name}`);
+
+        // 同じステータス内のプロジェクトを取得
+        const sameStatusProjects = projects.filter((p) => p.project_statuses?.id === overStatusId);
+        const activeIndex = sameStatusProjects.findIndex((p) => p.id === activeProject.id);
+
+        // 新しい順番を計算（現在の順番を維持）
+        if (onProjectReorder && activeIndex !== -1) {
+          const currentSortOrder = activeProject.sort_order || 0;
+          await onProjectReorder(activeProject.id, currentSortOrder);
+        }
+      } catch (error) {
+        console.error("プロジェクト順番変更エラー:", error);
       }
     }
 
