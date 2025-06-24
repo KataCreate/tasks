@@ -53,19 +53,15 @@ export function KanbanBoard({
       grouped[status.id] = [];
     });
 
-    // 未分類プロジェクト用
-    grouped["unassigned"] = [];
-
     // プロジェクトをステータス別に分類
     projects.forEach((project) => {
-      if (project.project_statuses?.id) {
-        if (grouped[project.project_statuses.id]) {
-          grouped[project.project_statuses.id].push(project);
-        } else {
-          grouped["unassigned"].push(project);
-        }
+      if (project.project_statuses?.id && grouped[project.project_statuses.id]) {
+        grouped[project.project_statuses.id].push(project);
       } else {
-        grouped["unassigned"].push(project);
+        // 未分類のプロジェクトは最初のステータスに配置
+        if (statuses.length > 0) {
+          grouped[statuses[0].id].push(project);
+        }
       }
     });
 
@@ -90,12 +86,14 @@ export function KanbanBoard({
 
     const overStatusId = over.id as string;
 
-    // 同じステータス内での移動は何もしない
-    if (activeProject.project_statuses?.id === overStatusId) return;
-
     // ステータスが変更された場合の処理
     if (statuses.some((s) => s.id === overStatusId)) {
-      // ここでは即座に更新せず、ドラッグ終了時に更新
+      // ドラッグ中の視覚的フィードバックはカラムコンポーネントで処理
+      console.log(
+        `🔄 ドラッグ中: ${activeProject.name} → ${
+          statuses.find((s) => s.id === overStatusId)?.name
+        }`
+      );
     }
   };
 
@@ -121,6 +119,11 @@ export function KanbanBoard({
       activeProject.project_statuses?.id !== overStatusId
     ) {
       try {
+        console.log(
+          `✅ プロジェクト移動: ${activeProject.name} → ${
+            statuses.find((s) => s.id === overStatusId)?.name
+          }`
+        );
         await onProjectUpdate(activeProject.id, overStatusId);
       } catch (error) {
         console.error("プロジェクトステータス更新エラー:", error);
@@ -142,17 +145,6 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
-          {/* 未分類プロジェクト */}
-          <KanbanColumn
-            id="unassigned"
-            title="未分類"
-            projects={groupedProjects["unassigned"] || []}
-            color="#6B7280"
-            onProjectEdit={onProjectEdit}
-            onProjectDelete={onProjectDelete}
-            onProjectTasks={onProjectTasks}
-          />
-
           {/* ステータス別カラム */}
           {statuses.map((status) => (
             <KanbanColumn

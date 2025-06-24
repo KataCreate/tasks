@@ -43,11 +43,22 @@ export function ProjectCard({
       {...listeners}
       className={`
         bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-grab
-        hover:shadow-md transition-shadow duration-200
-        ${dragging ? "opacity-50 shadow-lg" : ""}
+        hover:shadow-md transition-all duration-200
+        ${dragging ? "opacity-50 shadow-lg scale-105 rotate-1" : ""}
         ${dragging ? "cursor-grabbing" : "cursor-grab"}
+        hover:scale-[1.02] active:scale-[0.98]
       `}
     >
+      {/* ドラッグハンドル */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+        </div>
+        <span className="text-xs text-gray-400">ドラッグ</span>
+      </div>
+
       {/* プロジェクトヘッダー */}
       <div className="flex justify-between items-start mb-3">
         <h4 className="font-medium text-gray-900 text-sm line-clamp-2 flex-1">{project.name}</h4>

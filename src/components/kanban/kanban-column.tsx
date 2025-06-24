@@ -24,13 +24,17 @@ export function KanbanColumn({
   onProjectDelete,
   onProjectTasks,
 }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id,
   });
 
   return (
     <div className="flex-shrink-0 w-80">
-      <div className="bg-gray-50 rounded-lg p-4 h-full">
+      <div
+        className={`bg-gray-50 rounded-lg p-4 h-full transition-colors ${
+          isOver ? "bg-blue-50 border-2 border-blue-200" : ""
+        }`}
+      >
         {/* カラムヘッダー */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
@@ -43,7 +47,12 @@ export function KanbanColumn({
         </div>
 
         {/* ドロップエリア */}
-        <div ref={setNodeRef} className="min-h-[calc(100vh-200px)]">
+        <div
+          ref={setNodeRef}
+          className={`min-h-[calc(100vh-200px)] transition-colors ${
+            isOver ? "bg-blue-100 rounded-lg" : ""
+          }`}
+        >
           <SortableContext
             items={projects.map((project) => project.id)}
             strategy={verticalListSortingStrategy}
@@ -61,10 +70,27 @@ export function KanbanColumn({
             </div>
           </SortableContext>
 
-          {/* 空の状態 */}
+          {/* 空の状態またはドロップインジケーター */}
           {projects.length === 0 && (
-            <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-gray-500 text-sm">プロジェクトをドラッグしてください</p>
+            <div
+              className={`flex items-center justify-center h-32 border-2 border-dashed rounded-lg transition-colors ${
+                isOver ? "border-blue-400 bg-blue-50" : "border-gray-300"
+              }`}
+            >
+              <p
+                className={`text-sm transition-colors ${
+                  isOver ? "text-blue-600" : "text-gray-500"
+                }`}
+              >
+                {isOver ? "ここにドロップ" : "プロジェクトをドラッグしてください"}
+              </p>
+            </div>
+          )}
+
+          {/* プロジェクトがある場合のドロップインジケーター */}
+          {projects.length > 0 && isOver && (
+            <div className="mt-3 p-2 border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-600 text-center">ここにドロップ</p>
             </div>
           )}
         </div>
