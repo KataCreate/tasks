@@ -86,7 +86,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">案件名 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">案件名 *</label>
               <input
                 type="text"
                 name="name"
@@ -99,7 +99,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">説明</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">説明</label>
               <textarea
                 name="description"
                 value={formData.description}
@@ -111,7 +111,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">制作状況 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">制作状況 *</label>
               <select
                 name="status_id"
                 value={formData.status_id}
@@ -129,7 +129,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">納期</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">納期</label>
               <input
                 type="date"
                 name="delivery_date"
@@ -140,7 +140,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">メモ</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">メモ</label>
               <textarea
                 name="memo"
                 value={formData.memo}
@@ -155,7 +155,7 @@ export function ProjectForm({ statuses, project, onClose, onSuccess }: ProjectFo
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className="px-4 py-2 text-sm font-medium text-gray-900 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 キャンセル
               </button>

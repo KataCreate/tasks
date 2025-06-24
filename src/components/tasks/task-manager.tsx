@@ -77,8 +77,8 @@ export function TaskManager({ project, onClose }: TaskManagerProps) {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
-              <p className="text-sm text-gray-600 mt-1">タスク管理</p>
-              <div className="mt-2 flex items-center text-sm text-gray-500">
+              <p className="text-sm text-gray-900 mt-1">タスク管理</p>
+              <div className="mt-2 flex items-center text-sm text-gray-900">
                 <span>
                   進捗: {completedTasksCount}/{totalTasksCount} 完了
                 </span>
@@ -156,7 +156,7 @@ export function TaskManager({ project, onClose }: TaskManagerProps) {
                     />
                   </svg>
                   <h3 className="mt-2 text-sm font-medium text-gray-900">タスクがありません</h3>
-                  <p className="mt-1 text-sm text-gray-500">最初のタスクを作成してみましょう</p>
+                  <p className="mt-1 text-sm text-gray-900">最初のタスクを作成してみましょう</p>
                 </div>
               )}
             </div>

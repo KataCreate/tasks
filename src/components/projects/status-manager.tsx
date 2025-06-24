@@ -126,7 +126,7 @@ export function StatusManager({ onClose, onSuccess }: StatusManagerProps) {
         {showCreateForm ? (
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">制作状況名 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">制作状況名 *</label>
               <input
                 type="text"
                 value={formData.name}
@@ -138,7 +138,7 @@ export function StatusManager({ onClose, onSuccess }: StatusManagerProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">色 *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">色 *</label>
               <div className="flex items-center space-x-2">
                 <input
                   type="color"
@@ -160,7 +160,7 @@ export function StatusManager({ onClose, onSuccess }: StatusManagerProps) {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-sm font-medium text-gray-900 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
               >
                 キャンセル
               </button>
@@ -215,7 +215,7 @@ export function StatusManager({ onClose, onSuccess }: StatusManagerProps) {
         </div>
 
         {statuses.length === 0 && !showCreateForm && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-900">
             制作状況がありません。新規作成してください。
           </div>
         )}

@@ -18,9 +18,9 @@ export function StatsCard({ title, value, subtitle, icon, color }: StatsCardProp
     <div className="bg-white rounded-lg shadow p-6 border-l-4 border-gray-200 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-sm font-medium text-gray-900">{title}</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{value.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+          <p className="text-sm text-gray-900 mt-1">{subtitle}</p>
         </div>
         <div
           className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl ${colorClasses[color]}`}

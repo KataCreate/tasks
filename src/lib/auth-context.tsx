@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,17 +23,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const profileLoadingRef = useRef(false);
+  const sessionCheckRef = useRef(false);
 
-  useEffect(() => {
-    // 初期セッション取得
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+  // セッション復元とプロファイル読み込み
+  const initializeAuth = async () => {
+    if (sessionCheckRef.current) return;
+    sessionCheckRef.current = true;
+
+    try {
+      console.log("🔐 認証状態初期化開始");
+
+      // 現在のセッションを取得
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("❌ セッション取得エラー:", sessionError);
+        setLoading(false);
+        return;
+      }
+
+      console.log("📋 セッション状態:", session ? "有効" : "無効");
+
       if (session?.user) {
-        loadProfile(session.user.id);
+        setUser(session.user);
+        await loadProfile(session.user.id);
       } else {
+        setUser(null);
+        setProfile(null);
         setLoading(false);
       }
-    });
+    } catch (error) {
+      console.error("❌ 認証初期化エラー:", error);
+      setLoading(false);
+    } finally {
+      sessionCheckRef.current = false;
+    }
+  };
+
+  // セッション更新関数
+  const refreshSession = async () => {
+    try {
+      console.log("🔄 セッション更新開始");
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.refreshSession();
+
+      if (error) {
+        console.error("❌ セッション更新エラー:", error);
+        return;
+      }
+
+      if (session?.user) {
+        setUser(session.user);
+        await loadProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    } catch (error) {
+      console.error("❌ セッション更新例外:", error);
+    }
+  };
+
+  useEffect(() => {
+    // 初期認証状態の設定
+    initializeAuth();
 
     // 認証状態の変更を監視
     const {
@@ -49,7 +108,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // ページフォーカス時のセッション確認
+    const handleFocus = () => {
+      if (user) {
+        console.log("🔄 ページフォーカス - セッション確認");
+        refreshSession();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && user) {
+        console.log("👁️ ページ可視化 - セッション確認");
+        refreshSession();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const loadProfile = async (userId: string) => {
@@ -57,6 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       profileLoadingRef.current = true;
+      console.log("👤 プロファイル読み込み開始:", userId);
+
       // まず通常のプロファイル取得を試行
       const { data, error } = await auth.getProfile(userId);
 
@@ -151,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

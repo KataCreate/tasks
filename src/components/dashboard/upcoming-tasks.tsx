@@ -45,7 +45,7 @@ export function UpcomingTasks({ tasks }: UpcomingTasksProps) {
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-medium text-gray-900 truncate">{task.title}</h4>
-              <p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
+              <p className="text-xs text-gray-900 mt-1">{task.project_name}</p>
             </div>
             <div className="flex flex-col items-end gap-1">
               <span
@@ -66,7 +66,7 @@ export function UpcomingTasks({ tasks }: UpcomingTasksProps) {
               </div>
             </div>
           </div>
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="mt-2 text-xs text-gray-900">
             期限:{" "}
             {new Date(task.due_date).toLocaleDateString("ja-JP", {
               month: "short",

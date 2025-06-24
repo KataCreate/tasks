@@ -101,7 +101,7 @@ export function AuthForm() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             案件管理システム
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-900">
             {mode === "signin" ? "アカウントにログイン" : "新規アカウント作成"}
           </p>
         </div>
@@ -118,7 +118,7 @@ export function AuthForm() {
                   name="name"
                   type="text"
                   required={mode === "signup"}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-900 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="お名前"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -136,12 +136,12 @@ export function AuthForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-900 text-gray-900 ${
                   mode === "signup" ? "" : "rounded-t-md"
                 } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 placeholder="メールアドレス"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -155,10 +155,10 @@ export function AuthForm() {
                 type="password"
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-900 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="パスワード"
               />
             </div>
           </div>

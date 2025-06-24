@@ -2,16 +2,11 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { AuthForm } from "@/components/auth/auth-form";
-import { useState, Suspense, lazy } from "react";
+import { useState, Suspense, lazy, useEffect } from "react";
 import Link from "next/link";
+import { ProjectList } from "@/components/projects/project-list";
 
 // 重いコンポーネントを遅延読み込み
-const ProjectList = lazy(() =>
-  import("@/components/projects/project-list").then((module) => ({
-    default: module.ProjectList,
-  }))
-);
-
 const SetupButton = lazy(() =>
   import("@/components/setup-button").then((module) => ({
     default: module.SetupButton,
@@ -23,7 +18,7 @@ function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center p-8">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      <span className="ml-2 text-gray-600">読み込み中...</span>
+      <span className="ml-2 text-gray-900">読み込み中...</span>
     </div>
   );
 }
@@ -31,8 +26,14 @@ function LoadingSpinner() {
 export default function Home() {
   const { user, loading, signOut, profile } = useAuth();
   const [showSetup, setShowSetup] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (loading) {
+  // コンポーネントマウント状態の管理
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (loading || !mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -72,7 +73,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">こんにちは、{profile?.name || user.email}さん</span>
+              <span className="text-gray-900">こんにちは、{profile?.name || user.email}さん</span>
               <nav className="flex space-x-2">
                 <Link
                   href="/dashboard"
@@ -129,9 +130,7 @@ export default function Home() {
               </Suspense>
             </div>
           )}
-          <Suspense fallback={<LoadingSpinner />}>
-            <ProjectList />
-          </Suspense>
+          <ProjectList />
         </div>
       </main>
     </div>

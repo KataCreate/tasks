@@ -85,8 +85,8 @@ export default function DebugPage() {
           <div className="grid grid-cols-2 gap-4">
             {Object.entries(envVars).map(([key, value]) => (
               <div key={key} className="border rounded p-3">
-                <div className="font-medium text-gray-700">{key}</div>
-                <div className="text-sm text-gray-600">{String(value)}</div>
+                <div className="font-medium text-gray-900">{key}</div>
+                <div className="text-sm text-gray-900">{String(value)}</div>
               </div>
             ))}
           </div>
@@ -179,7 +179,7 @@ export default function DebugPage() {
           <h2 className="text-xl font-semibold mb-4">ログインテスト</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">メールアドレス</label>
               <input
                 type="email"
                 value={testEmail}
@@ -189,7 +189,7 @@ export default function DebugPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">パスワード</label>
               <input
                 type="password"
                 value={testPassword}

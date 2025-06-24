@@ -22,46 +22,99 @@ export function ProjectList() {
 
   const loadingRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
+  const lastLoadTimeRef = useRef<number>(0);
 
-  // ユーザー変更時のみデータを読み込み
+  // データ読み込み関数
+  const loadData = useCallback(
+    async (forceReload = false) => {
+      if (!user?.id) return;
+
+      // 強制リロードでない場合、前回の読み込みから5秒以内ならスキップ
+      const now = Date.now();
+      if (!forceReload && now - lastLoadTimeRef.current < 5000) {
+        console.log("⏭️ データ読み込みをスキップ（前回から5秒以内）");
+        return;
+      }
+
+      if (loadingRef.current) {
+        console.log("⏭️ 既に読み込み中のためスキップ");
+        return;
+      }
+
+      try {
+        loadingRef.current = true;
+        setLoading(true);
+        console.log("📊 データ読み込み開始 - ユーザーID:", user.id);
+
+        const [projectsData, statusesData] = await Promise.all([
+          getProjects(user.id),
+          getProjectStatuses(user.id),
+        ]);
+
+        console.log("📈 取得した案件数:", projectsData.length);
+        console.log("🎯 取得した制作状況数:", statusesData.length);
+
+        setProjects(projectsData);
+        setStatuses(statusesData);
+        lastLoadTimeRef.current = now;
+      } catch (error) {
+        console.error("❌ データ読み込みエラー:", error);
+      } finally {
+        setLoading(false);
+        loadingRef.current = false;
+      }
+    },
+    [user?.id]
+  );
+
+  // ユーザー変更時のデータ読み込み
   useEffect(() => {
     if (user?.id && user.id !== userIdRef.current) {
       console.log("👤 ユーザー変更検出:", user.id);
       userIdRef.current = user.id;
-      loadData();
+      loadData(true);
     } else if (!user?.id) {
       userIdRef.current = null;
       setProjects([]);
       setStatuses([]);
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, loadData]);
 
-  const loadData = useCallback(async () => {
-    if (!user?.id || loadingRef.current) return;
+  // ページフォーカス時のデータ再読み込み
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id) {
+        console.log("🔄 ページフォーカス検出 - データ再読み込み");
+        loadData(true);
+      }
+    };
 
-    try {
-      loadingRef.current = true;
-      setLoading(true);
-      console.log("📊 データ読み込み開始 - ユーザーID:", user.id);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && user?.id) {
+        console.log("👁️ ページ可視化検出 - データ再読み込み");
+        loadData(true);
+      }
+    };
 
-      const [projectsData, statusesData] = await Promise.all([
-        getProjects(user.id),
-        getProjectStatuses(user.id),
-      ]);
+    // ページフォーカスイベント
+    window.addEventListener("focus", handleFocus);
+    // ページ可視性変更イベント
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
-      console.log("📈 取得した案件数:", projectsData.length);
-      console.log("🎯 取得した制作状況数:", statusesData.length);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.id, loadData]);
 
-      setProjects(projectsData);
-      setStatuses(statusesData);
-    } catch (error) {
-      console.error("❌ データ読み込みエラー:", error);
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
+  // 初回マウント時のデータ読み込み
+  useEffect(() => {
+    if (user?.id && projects.length === 0 && statuses.length === 0) {
+      console.log("🚀 初回マウント - データ読み込み");
+      loadData(true);
     }
-  }, [user?.id]);
+  }, [user?.id, projects.length, statuses.length, loadData]);
 
   const handleProjectCreated = () => {
     setShowCreateForm(false);
@@ -126,7 +179,7 @@ export function ProjectList() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowStatusManager(true)}
-            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
+            className="border border-gray-300 text-gray-900 px-4 py-2 rounded-md text-sm font-medium flex items-center hover:bg-gray-50 transition-colors"
           >
             <svg
               className="-ml-1 mr-2 h-5 w-5"
@@ -205,7 +258,7 @@ export function ProjectList() {
                 placeholder="案件名または説明で検索..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-900 text-gray-900"
               />
             </div>
             <select
@@ -228,19 +281,19 @@ export function ProjectList() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       案件名
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       制作状況
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       納期
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       タスク進捗
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       操作
                     </th>
                   </tr>
@@ -248,7 +301,7 @@ export function ProjectList() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredProjects.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-4 text-center text-gray-900">
                         案件が見つかりません
                       </td>
                     </tr>
@@ -269,7 +322,7 @@ export function ProjectList() {
                                 {project.name}
                               </div>
                               {project.description && (
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
+                                <div className="text-sm text-gray-900 truncate max-w-xs">
                                   {project.description}
                                 </div>
                               )}
@@ -303,7 +356,7 @@ export function ProjectList() {
                                   ></div>
                                 </div>
                               </div>
-                              <span className="text-sm text-gray-500">
+                              <span className="text-sm text-gray-900">
                                 {completedTasksCount}/{totalTasksCount}
                               </span>
                             </div>
@@ -381,21 +434,21 @@ export function ProjectList() {
           {/* 統計情報 */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-500">総案件数</div>
+              <div className="text-sm font-medium text-gray-900">総案件数</div>
               <div className="text-2xl font-bold text-gray-900">{projects.length}</div>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-500">制作状況数</div>
+              <div className="text-sm font-medium text-gray-900">制作状況数</div>
               <div className="text-2xl font-bold text-gray-900">{statuses.length}</div>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-500">総タスク数</div>
+              <div className="text-sm font-medium text-gray-900">総タスク数</div>
               <div className="text-2xl font-bold text-gray-900">
                 {projects.reduce((total, project) => total + project.tasks.length, 0)}
               </div>
             </div>
             <div className="bg-white p-4 rounded-lg shadow">
-              <div className="text-sm font-medium text-gray-500">完了タスク数</div>
+              <div className="text-sm font-medium text-gray-900">完了タスク数</div>
               <div className="text-2xl font-bold text-gray-900">
                 {projects.reduce(
                   (total, project) =>

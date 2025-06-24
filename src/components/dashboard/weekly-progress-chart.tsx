@@ -46,7 +46,7 @@ export function WeeklyProgressChart({ data }: WeeklyProgressChartProps) {
                 </div>
 
                 {/* 数値表示 */}
-                <div className="text-xs text-gray-500 text-center">
+                <div className="text-xs text-gray-900 text-center">
                   <div>完了: {week.completed}</div>
                   <div>作成: {week.created}</div>
                 </div>
@@ -60,11 +60,11 @@ export function WeeklyProgressChart({ data }: WeeklyProgressChartProps) {
       <div className="flex items-center justify-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-blue-500 rounded"></div>
-          <span className="text-gray-700">完了したタスク</span>
+          <span className="text-gray-900">完了したタスク</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-blue-200 rounded"></div>
-          <span className="text-gray-700">作成されたタスク</span>
+          <span className="text-gray-900">作成されたタスク</span>
         </div>
       </div>
     </div>

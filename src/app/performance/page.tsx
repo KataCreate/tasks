@@ -172,7 +172,7 @@ export default function PerformancePage() {
       case "error":
         return "text-red-600 bg-red-100";
       default:
-        return "text-gray-600 bg-gray-100";
+        return "text-gray-900 bg-gray-100";
     }
   };
 
@@ -200,7 +200,7 @@ export default function PerformancePage() {
             {metrics.map((metric, index) => (
               <div key={index} className="border rounded p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">{metric.name}</span>
+                  <span className="text-sm font-medium text-gray-900">{metric.name}</span>
                   <span className={`px-2 py-1 rounded text-xs ${getStatusColor(metric.status)}`}>
                     {metric.status === "good"
                       ? "良好"
@@ -227,7 +227,7 @@ export default function PerformancePage() {
                 <div key={index} className="flex justify-between items-center p-4 border rounded">
                   <div>
                     <div className="font-medium">{test.name}</div>
-                    <div className="text-sm text-gray-600">{test.details}</div>
+                    <div className="text-sm text-gray-900">{test.details}</div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <span className="text-lg font-semibold">{test.time}ms</span>
@@ -241,7 +241,7 @@ export default function PerformancePage() {
           ) : (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">接続テスト実行中...</p>
+              <p className="mt-2 text-gray-900">接続テスト実行中...</p>
             </div>
           )}
         </div>
@@ -253,21 +253,21 @@ export default function PerformancePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{networkInfo.effectiveType}</div>
-                <div className="text-sm text-gray-600">接続タイプ</div>
+                <div className="text-sm text-gray-900">接続タイプ</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{networkInfo.downlink} Mbps</div>
-                <div className="text-sm text-gray-600">ダウンロード速度</div>
+                <div className="text-sm text-gray-900">ダウンロード速度</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-yellow-600">{networkInfo.rtt}ms</div>
-                <div className="text-sm text-gray-600">レイテンシ</div>
+                <div className="text-sm text-gray-900">レイテンシ</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
                   {networkInfo.saveData ? "ON" : "OFF"}
                 </div>
-                <div className="text-sm text-gray-600">データセーバー</div>
+                <div className="text-sm text-gray-900">データセーバー</div>
               </div>
             </div>
           </div>

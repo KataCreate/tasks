@@ -25,7 +25,7 @@ export function StatusChart({ data }: StatusChartProps) {
 
   if (total === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-gray-900 py-8">
         <p>データがありません</p>
       </div>
     );
@@ -70,7 +70,7 @@ export function StatusChart({ data }: StatusChartProps) {
             </div>
             <div className="flex items-center gap-1">
               <span className="font-medium text-gray-900">{item.count}</span>
-              <span className="text-gray-500">({item.percentage}%)</span>
+              <span className="text-gray-900">({item.percentage}%)</span>
             </div>
           </div>
         ))}

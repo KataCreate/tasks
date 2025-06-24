@@ -93,7 +93,7 @@ export function TaskForm({ projectId, task, parentTask, onClose, onSuccess }: Ta
                 {isEditing ? "タスク編集" : isSubTask ? "サブタスク作成" : "新規タスク作成"}
               </h3>
               {isSubTask && (
-                <p className="text-sm text-gray-600 mt-1">親タスク: {parentTask!.title}</p>
+                <p className="text-sm text-gray-900 mt-1">親タスク: {parentTask!.title}</p>
               )}
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -232,7 +232,7 @@ export function TaskForm({ projectId, task, parentTask, onClose, onSuccess }: Ta
                   setFormData({ ...formData, progress_percentage: Number(e.target.value) })
                 }
               />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-gray-900 mt-1">
                 <span>0%</span>
                 <span>25%</span>
                 <span>50%</span>
@@ -253,7 +253,7 @@ export function TaskForm({ projectId, task, parentTask, onClose, onSuccess }: Ta
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder="タグをカンマ区切りで入力 (例: デザイン, 重要, バグ修正)"
               />
-              <p className="text-xs text-gray-600 mt-1">複数のタグはカンマで区切ってください</p>
+              <p className="text-xs text-gray-900 mt-1">複数のタグはカンマで区切ってください</p>
             </div>
 
             {error && (
@@ -266,7 +266,7 @@ export function TaskForm({ projectId, task, parentTask, onClose, onSuccess }: Ta
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-md"
               >
                 キャンセル
               </button>

@@ -172,7 +172,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
-              <p className="text-gray-600 mt-1">案件とタスクの進捗状況を確認できます</p>
+              <p className="text-gray-900 mt-1">案件とタスクの進捗状況を確認できます</p>
             </div>
             <button
               onClick={loadDashboardData}
@@ -234,7 +234,7 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {stats.priorityDistribution.map((item) => (
                   <div key={item.priority} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-gray-900">
                       {item.priority === "urgent"
                         ? "緊急"
                         : item.priority === "high"
@@ -257,7 +257,7 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {stats.statusDistribution.map((item) => (
                   <div key={item.status} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-gray-900">
                       {item.status === "todo"
                         ? "未着手"
                         : item.status === "in_progress"
@@ -287,12 +287,12 @@ export default function DashboardPage() {
                   {stats.upcomingDeadlines.map((task) => (
                     <div key={task.id} className="p-3 border border-gray-200 rounded-lg">
                       <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
-                      <p className="text-xs text-gray-600 mt-1">{task.project_name}</p>
+                      <p className="text-xs text-gray-900 mt-1">{task.project_name}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-900">
                           期限: {new Date(task.due_date).toLocaleDateString("ja-JP")}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-900">
                           {task.days_until_due === 0 ? "今日" : `${task.days_until_due}日後`}
                         </span>
                       </div>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-500 py-8">期限が近いタスクはありません</p>
+                <p className="text-center text-gray-900 py-8">期限が近いタスクはありません</p>
               )}
             </div>
 
@@ -319,19 +319,19 @@ export default function DashboardPage() {
                             ? "タスク完了"
                             : "案件作成"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-900">
                           {new Date(activity.created_at).toLocaleDateString("ja-JP")}
                         </span>
                       </div>
-                      <h4 className="text-sm text-gray-700">{activity.title}</h4>
+                      <h4 className="text-sm text-gray-900">{activity.title}</h4>
                       {activity.project_name && (
-                        <p className="text-xs text-gray-500 mt-1">{activity.project_name}</p>
+                        <p className="text-xs text-gray-900 mt-1">{activity.project_name}</p>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-500 py-8">最近のアクティビティはありません</p>
+                <p className="text-center text-gray-900 py-8">最近のアクティビティはありません</p>
               )}
             </div>
           </div>

@@ -61,7 +61,7 @@ export function TaskItem({
           {hasChildren && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-900 hover:text-gray-900"
             >
               <svg
                 className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
@@ -102,7 +102,7 @@ export function TaskItem({
             <div className="flex items-center gap-2 mb-1">
               <h4
                 className={`text-sm font-medium text-gray-900 ${
-                  task.is_completed || task.status === "done" ? "line-through text-gray-500" : ""
+                  task.is_completed || task.status === "done" ? "line-through text-gray-900" : ""
                 }`}
               >
                 {task.title}
@@ -156,11 +156,11 @@ export function TaskItem({
             </div>
 
             {task.description && (
-              <p className="text-xs text-gray-600 mt-1 line-clamp-2">{task.description}</p>
+              <p className="text-xs text-gray-900 mt-1 line-clamp-2">{task.description}</p>
             )}
 
             {/* 詳細情報 */}
-            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+            <div className="flex items-center gap-3 mt-2 text-xs text-gray-900">
               {task.due_date && (
                 <div
                   className={`flex items-center gap-1 ${
@@ -215,7 +215,7 @@ export function TaskItem({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="text-gray-400 hover:text-gray-600 p-1"
+              className="text-gray-900 hover:text-gray-900 p-1"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -230,7 +230,7 @@ export function TaskItem({
                       onAddSubTask(task);
                       setShowMenu(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100"
                   >
                     サブタスクを追加
                   </button>
@@ -239,7 +239,7 @@ export function TaskItem({
                       onEdit(task);
                       setShowMenu(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100"
                   >
                     編集
                   </button>

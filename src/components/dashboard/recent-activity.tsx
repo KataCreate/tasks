@@ -42,7 +42,7 @@ function formatTimeAgo(dateString: string): string {
 export function RecentActivity({ activities }: RecentActivityProps) {
   if (activities.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-gray-900 py-8">
         <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
@@ -75,11 +75,11 @@ export function RecentActivity({ activities }: RecentActivityProps) {
               <span className="text-sm font-medium text-gray-900">
                 {activityLabels[activity.type]}
               </span>
-              <span className="text-xs text-gray-500">{formatTimeAgo(activity.created_at)}</span>
+              <span className="text-xs text-gray-900">{formatTimeAgo(activity.created_at)}</span>
             </div>
-            <h4 className="text-sm text-gray-700 truncate">{activity.title}</h4>
+            <h4 className="text-sm text-gray-900 truncate">{activity.title}</h4>
             {activity.project_name && (
-              <p className="text-xs text-gray-500 mt-1">{activity.project_name}</p>
+              <p className="text-xs text-gray-900 mt-1">{activity.project_name}</p>
             )}
           </div>
         </div>
