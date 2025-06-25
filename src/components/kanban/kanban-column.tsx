@@ -97,6 +97,9 @@ export function KanbanColumn({
               </p>
             </div>
           )}
+
+          {/* プロジェクト間のドロップエリア（透明） */}
+          <div className="h-2 w-full"></div>
         </div>
       </div>
     </div>
