@@ -26,13 +26,6 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,
-    data: {
-      type: "column",
-      statusId: id,
-      statusName: title,
-      projectCount: projects.length,
-      projects: projects.map((p) => ({ id: p.id, name: p.name, sort_order: p.sort_order })),
-    },
   });
 
   return (
@@ -73,36 +66,12 @@ export function KanbanColumn({
             </div>
           </SortableContext>
 
-          {/* 空の状態またはドロップインジケーター */}
+          {/* 空の状態 */}
           {projects.length === 0 && (
-            <div
-              className={`flex items-center justify-center h-32 border-2 border-dashed rounded-lg transition-colors ${
-                isOver ? "border-blue-400 bg-blue-50" : "border-gray-300"
-              }`}
-            >
-              <p
-                className={`text-sm transition-colors ${
-                  isOver ? "text-blue-600" : "text-gray-500"
-                }`}
-              >
-                {isOver ? "ここにドロップ" : "プロジェクトをドラッグしてください"}
-              </p>
+            <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-300 rounded-lg">
+              <p className="text-sm text-gray-500">プロジェクトをドラッグしてください</p>
             </div>
           )}
-
-          {/* プロジェクトがある場合のドロップインジケーター */}
-          {projects.length > 0 && isOver && (
-            <div className="mt-3 p-2 border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600 text-center">
-                {projects.length === 1
-                  ? "ここにドロップ"
-                  : `${projects.length}件のプロジェクトがあります`}
-              </p>
-            </div>
-          )}
-
-          {/* プロジェクト間のドロップエリア（透明） */}
-          <div className="h-4 w-full"></div>
         </div>
       </div>
     </div>
