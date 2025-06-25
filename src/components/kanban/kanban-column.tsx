@@ -38,6 +38,7 @@ export function KanbanColumn({
   return (
     <div className="flex-shrink-0 w-80">
       <div
+        ref={setNodeRef}
         className={`bg-gray-50 rounded-lg p-4 h-full transition-colors ${
           isOver ? "bg-blue-50 border-2 border-blue-200" : ""
         }`}
@@ -53,13 +54,8 @@ export function KanbanColumn({
           </span>
         </div>
 
-        {/* ドロップエリア */}
-        <div
-          ref={setNodeRef}
-          className={`min-h-[calc(100vh-200px)] transition-colors relative ${
-            isOver ? "bg-blue-100 rounded-lg" : ""
-          }`}
-        >
+        {/* プロジェクトエリア */}
+        <div className="min-h-[calc(100vh-200px)]">
           <SortableContext
             items={projects.map((project) => project.id)}
             strategy={verticalListSortingStrategy}
@@ -107,9 +103,6 @@ export function KanbanColumn({
 
           {/* プロジェクト間のドロップエリア（透明） */}
           <div className="h-4 w-full"></div>
-
-          {/* カラム全体のドロップエリア（透明） */}
-          <div className="absolute inset-0 pointer-events-none"></div>
         </div>
       </div>
     </div>

@@ -102,6 +102,8 @@ export function KanbanBoard({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
+    console.log("🎯 ドラッグ終了イベント:", { active: active?.id, over: over?.id });
+
     if (!over) {
       console.log("❌ ドロップ先が見つかりません");
       setActiveProject(null);
