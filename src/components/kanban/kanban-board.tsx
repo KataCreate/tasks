@@ -122,9 +122,6 @@ export function KanbanBoard({
     const overProject = projects.find((p) => p.id === overId);
     if (overProject) {
       console.log(`📋 プロジェクト間ドラッグ: ${activeProject.name} → ${overProject.name}`);
-      console.log(
-        `📊 ステータス比較: ${activeProject.project_statuses?.id} === ${overProject.project_statuses?.id}`
-      );
 
       if (activeProject.project_statuses?.id === overProject.project_statuses?.id) {
         try {
@@ -142,22 +139,11 @@ export function KanbanBoard({
           const overIndex = sameStatusProjects.findIndex((p) => p.id === overProject.id);
 
           console.log(`📊 インデックス: activeIndex=${activeIndex}, overIndex=${overIndex}`);
-          console.log(
-            `📋 同じステータス内のプロジェクト:`,
-            sameStatusProjects.map((p) => p.name)
-          );
 
           if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-            // arrayMoveを使用して新しい順番を計算
-            const reorderedProjects = arrayMove(sameStatusProjects, activeIndex, overIndex);
-
             // 新しい順番を計算（10刻みで設定）
             const newSortOrder = overIndex * 10;
             console.log(`📊 順番変更: ${activeIndex} → ${overIndex} (sort_order: ${newSortOrder})`);
-            console.log(
-              `📋 再ソート後のプロジェクト:`,
-              reorderedProjects.map((p) => ({ id: p.id, name: p.name, sort_order: p.sort_order }))
-            );
 
             if (onProjectReorder) {
               await onProjectReorder(activeProject.id, newSortOrder);
@@ -191,31 +177,9 @@ export function KanbanBoard({
         }
       } else {
         console.log(`⚠️ 同じステータスへのドラッグ: ${activeProject.project_statuses?.name}`);
-        // 同じステータスへのドロップの場合、最後尾に追加
-        try {
-          const sameStatusProjects = projects.filter(
-            (p) => p.project_statuses?.id === overStatusId
-          );
-          const newSortOrder = sameStatusProjects.length * 10;
-          console.log(`📊 同じステータス内で最後尾に追加: sort_order=${newSortOrder}`);
-
-          if (onProjectReorder) {
-            await onProjectReorder(activeProject.id, newSortOrder);
-          }
-        } catch (error) {
-          console.error("プロジェクト順番変更エラー:", error);
-        }
       }
     } else {
       console.log(`❓ 不明なドロップ先: ${overId}`);
-      console.log(
-        `🔍 利用可能なステータス:`,
-        statuses.map((s) => s.id)
-      );
-      console.log(
-        `🔍 利用可能なプロジェクト:`,
-        projects.map((p) => p.id)
-      );
     }
 
     setActiveProject(null);
