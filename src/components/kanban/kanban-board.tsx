@@ -183,7 +183,6 @@ export function KanbanBoard({
           {activeProject ? (
             <ProjectCard
               project={activeProject}
-              isDragging={true}
               onEdit={() => {}}
               onDelete={() => {}}
               onTasks={() => {}}

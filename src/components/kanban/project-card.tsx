@@ -6,61 +6,42 @@ import { ProjectWithStatus } from "@/lib/database.types";
 
 interface ProjectCardProps {
   project: ProjectWithStatus;
-  isDragging?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onTasks: () => void;
 }
 
-export function ProjectCard({
-  project,
-  isDragging = false,
-  onEdit,
-  onDelete,
-  onTasks,
-}: ProjectCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-    setActivatorNodeRef,
-  } = useSortable({ id: project.id });
+export function ProjectCard({ project, onEdit, onDelete, onTasks }: ProjectCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  const dragging = isDragging || isSortableDragging;
-
   return (
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
         isDragging ? "opacity-50 rotate-2 scale-105 shadow-lg" : ""
       }`}
     >
-      {/* ドラッグハンドル */}
+      {/* プロジェクトヘッダー */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
         </div>
         <div className="flex items-center space-x-1 ml-2">
           <button
-            ref={setActivatorNodeRef}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-            title="ドラッグして移動"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M7 2a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 2zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 8zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 7 14zm6-8a2 2 0 1 1-.001-4.001A2 2 0 0 1 13 6zm0 2a2 2 0 1 1 .001 4.001A2 2 0 0 1 13 8zm0 6a2 2 0 1 1 .001 4.001A2 2 0 0 1 13 14z" />
-            </svg>
-          </button>
-          <button
-            onClick={onEdit}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
             title="編集"
           >
@@ -74,7 +55,10 @@ export function ProjectCard({
             </svg>
           </button>
           <button
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className="p-1 text-gray-400 hover:text-red-600 transition-colors"
             title="削除"
           >
@@ -101,20 +85,6 @@ export function ProjectCard({
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">作成日:</span>
-          <span className="font-medium text-gray-900">
-            {new Date(project.created_at).toLocaleDateString("ja-JP")}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">更新日:</span>
-          <span className="font-medium text-gray-900">
-            {new Date(project.updated_at).toLocaleDateString("ja-JP")}
-          </span>
-        </div>
-
         {project.description && (
           <div className="mt-3">
             <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
@@ -124,7 +94,10 @@ export function ProjectCard({
         {/* タスク管理ボタン */}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <button
-            onClick={onTasks}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTasks();
+            }}
             className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-medium py-2 px-3 rounded-md transition-colors"
           >
             タスク管理
