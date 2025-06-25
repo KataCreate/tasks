@@ -26,6 +26,11 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id,
+    data: {
+      type: "column",
+      statusId: id,
+      projects: projects,
+    },
   });
 
   return (
@@ -49,7 +54,7 @@ export function KanbanColumn({
         {/* ドロップエリア */}
         <div
           ref={setNodeRef}
-          className={`min-h-[calc(100vh-200px)] transition-colors ${
+          className={`min-h-[calc(100vh-200px)] transition-colors relative ${
             isOver ? "bg-blue-100 rounded-lg" : ""
           }`}
         >
@@ -99,7 +104,18 @@ export function KanbanColumn({
           )}
 
           {/* プロジェクト間のドロップエリア（透明） */}
-          <div className="h-2 w-full"></div>
+          <div className="h-4 w-full"></div>
+
+          {/* ドロップ可能エリアのオーバーレイ（デバッグ用） */}
+          {isOver && (
+            <div className="absolute inset-0 border-2 border-blue-400 border-dashed rounded-lg pointer-events-none z-10"></div>
+          )}
+
+          {/* 常に表示されるドロップエリア（透明） */}
+          <div className="absolute inset-0 pointer-events-none"></div>
+
+          {/* 追加のドロップエリア（カラム全体） */}
+          <div className="absolute inset-0 bg-transparent"></div>
         </div>
       </div>
     </div>

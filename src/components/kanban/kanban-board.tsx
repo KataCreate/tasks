@@ -177,28 +177,45 @@ export function KanbanBoard({
     // ステータス間のドラッグ&ドロップ
     else if (statuses.some((s) => s.id === overId)) {
       const overStatusId = overId;
+      const overStatus = statuses.find((s) => s.id === overStatusId);
       console.log(
-        `📋 ステータス間ドラッグ: ${activeProject.project_statuses?.name} → ${
-          statuses.find((s) => s.id === overStatusId)?.name
-        }`
+        `📋 ステータス間ドラッグ: ${activeProject.project_statuses?.name} → ${overStatus?.name}`
       );
 
       if (activeProject.project_statuses?.id !== overStatusId) {
         try {
-          console.log(
-            `✅ プロジェクト移動: ${activeProject.name} → ${
-              statuses.find((s) => s.id === overStatusId)?.name
-            }`
-          );
+          console.log(`✅ プロジェクト移動: ${activeProject.name} → ${overStatus?.name}`);
           await onProjectUpdate(activeProject.id, overStatusId);
         } catch (error) {
           console.error("プロジェクトステータス更新エラー:", error);
         }
       } else {
         console.log(`⚠️ 同じステータスへのドラッグ: ${activeProject.project_statuses?.name}`);
+        // 同じステータスへのドロップの場合、最後尾に追加
+        try {
+          const sameStatusProjects = projects.filter(
+            (p) => p.project_statuses?.id === overStatusId
+          );
+          const newSortOrder = sameStatusProjects.length * 10;
+          console.log(`📊 同じステータス内で最後尾に追加: sort_order=${newSortOrder}`);
+
+          if (onProjectReorder) {
+            await onProjectReorder(activeProject.id, newSortOrder);
+          }
+        } catch (error) {
+          console.error("プロジェクト順番変更エラー:", error);
+        }
       }
     } else {
       console.log(`❓ 不明なドロップ先: ${overId}`);
+      console.log(
+        `🔍 利用可能なステータス:`,
+        statuses.map((s) => s.id)
+      );
+      console.log(
+        `🔍 利用可能なプロジェクト:`,
+        projects.map((p) => p.id)
+      );
     }
 
     setActiveProject(null);
