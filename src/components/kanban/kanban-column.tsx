@@ -29,7 +29,9 @@ export function KanbanColumn({
     data: {
       type: "column",
       statusId: id,
-      projects: projects,
+      statusName: title,
+      projectCount: projects.length,
+      projects: projects.map((p) => ({ id: p.id, name: p.name, sort_order: p.sort_order })),
     },
   });
 
@@ -54,7 +56,7 @@ export function KanbanColumn({
         {/* ドロップエリア */}
         <div
           ref={setNodeRef}
-          className={`min-h-[calc(100vh-200px)] transition-colors ${
+          className={`min-h-[calc(100vh-200px)] transition-colors relative ${
             isOver ? "bg-blue-100 rounded-lg" : ""
           }`}
         >
@@ -105,6 +107,9 @@ export function KanbanColumn({
 
           {/* プロジェクト間のドロップエリア（透明） */}
           <div className="h-4 w-full"></div>
+
+          {/* カラム全体のドロップエリア（透明） */}
+          <div className="absolute inset-0 pointer-events-none"></div>
         </div>
       </div>
     </div>

@@ -171,15 +171,58 @@ export function KanbanBoard({
       if (activeProject.project_statuses?.id !== overStatusId) {
         try {
           console.log(`✅ プロジェクト移動: ${activeProject.name} → ${overStatus?.name}`);
+
+          // 新しいステータス内のプロジェクト数を取得して最後尾に配置
+          const targetStatusProjects = projects.filter(
+            (p) => p.project_statuses?.id === overStatusId
+          );
+          const newSortOrder = targetStatusProjects.length * 10;
+          console.log(`📊 新しいステータス内で最後尾に配置: sort_order=${newSortOrder}`);
+          console.log(
+            `📋 ターゲットステータス内のプロジェクト:`,
+            targetStatusProjects.map((p) => p.name)
+          );
+
           await onProjectUpdate(activeProject.id, overStatusId);
+
+          // 順番も更新
+          if (onProjectReorder) {
+            await onProjectReorder(activeProject.id, newSortOrder);
+          }
         } catch (error) {
           console.error("プロジェクトステータス更新エラー:", error);
         }
       } else {
         console.log(`⚠️ 同じステータスへのドラッグ: ${activeProject.project_statuses?.name}`);
+        // 同じステータスへのドロップの場合、最後尾に追加
+        try {
+          const sameStatusProjects = projects.filter(
+            (p) => p.project_statuses?.id === overStatusId
+          );
+          const newSortOrder = sameStatusProjects.length * 10;
+          console.log(`📊 同じステータス内で最後尾に追加: sort_order=${newSortOrder}`);
+          console.log(
+            `📋 同じステータス内のプロジェクト:`,
+            sameStatusProjects.map((p) => p.name)
+          );
+
+          if (onProjectReorder) {
+            await onProjectReorder(activeProject.id, newSortOrder);
+          }
+        } catch (error) {
+          console.error("プロジェクト順番変更エラー:", error);
+        }
       }
     } else {
       console.log(`❓ 不明なドロップ先: ${overId}`);
+      console.log(
+        `🔍 利用可能なステータス:`,
+        statuses.map((s) => ({ id: s.id, name: s.name }))
+      );
+      console.log(
+        `🔍 利用可能なプロジェクト:`,
+        projects.map((p) => ({ id: p.id, name: p.name, status: p.project_statuses?.name }))
+      );
     }
 
     setActiveProject(null);
