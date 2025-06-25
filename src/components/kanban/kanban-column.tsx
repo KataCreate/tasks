@@ -58,7 +58,7 @@ export function KanbanColumn({
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-3">
-              {projects.map((project) => (
+              {projects.map((project, index) => (
                 <ProjectCard
                   key={project.id}
                   project={project}

@@ -137,12 +137,28 @@ export function KanbanBoard({
 
         // 同じステータス内のプロジェクトを取得
         const sameStatusProjects = projects.filter((p) => p.project_statuses?.id === overStatusId);
-        const activeIndex = sameStatusProjects.findIndex((p) => p.id === activeProject.id);
 
-        // 新しい順番を計算（現在の順番を維持）
-        if (onProjectReorder && activeIndex !== -1) {
-          const currentSortOrder = activeProject.sort_order || 0;
-          await onProjectReorder(activeProject.id, currentSortOrder);
+        // ドロップ位置を計算
+        const activeIndex = sameStatusProjects.findIndex((p) => p.id === activeProject.id);
+        const overIndex = sameStatusProjects.findIndex((p) => p.id === over.id);
+
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+          // arrayMoveを使用して新しい順番を計算
+          const reorderedProjects = arrayMove(sameStatusProjects, activeIndex, overIndex);
+
+          // 新しい順番を計算（10刻みで設定）
+          const newSortOrder = overIndex * 10;
+          console.log(`📊 順番変更: ${activeIndex} → ${overIndex} (sort_order: ${newSortOrder})`);
+          console.log(
+            `📋 再ソート後のプロジェクト:`,
+            reorderedProjects.map((p) => ({ id: p.id, name: p.name, sort_order: p.sort_order }))
+          );
+
+          if (onProjectReorder) {
+            await onProjectReorder(activeProject.id, newSortOrder);
+          }
+        } else {
+          console.log(`⚠️ 順番変更不要: activeIndex=${activeIndex}, overIndex=${overIndex}`);
         }
       } catch (error) {
         console.error("プロジェクト順番変更エラー:", error);

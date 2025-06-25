@@ -130,10 +130,14 @@ export function ProjectList() {
 
       // ローカル状態を更新
       setProjects((prev) =>
-        prev.map((project) =>
-          project.id === projectId ? { ...project, sort_order: newSortOrder } : project
-        )
+        prev
+          .map((project) =>
+            project.id === projectId ? { ...project, sort_order: newSortOrder } : project
+          )
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       );
+
+      console.log(`✅ 順番変更完了: ${projectId}`);
     } catch (error) {
       console.error("プロジェクト順番変更エラー:", error);
       // エラーが発生した場合はデータを再読み込み
